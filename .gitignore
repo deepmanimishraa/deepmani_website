@@ -1,0 +1,83 @@
+# ─── SECRET / ENVIRONMENT ─────────────────────────────────────
+.env
+.env.local
+.env.production
+*.env
+
+# ─── PYTHON ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyw
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ─── VIRTUAL ENVIRONMENTS ─────────────────────────────────────
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+.virtualenv/
+
+# ─── DATABASE (local dev only) ────────────────────────────────
+*.sqlite3
+*.db
+dev.db
+instance/
+
+# ─── FLASK / WSGI ─────────────────────────────────────────────
+instance/
+.webassets-cache
+
+# ─── CLOUDINARY / UPLOADS (never store locally) ───────────────
+uploads/
+static/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+*.mp4
+# Exceptions: Keep static website assets
+!static/images/profile.jpg
+!static/images/profile.png
+!favicon.ico
+!favicon.png
+
+# ─── IDE / EDITOR ─────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── NODE (if ever used) ──────────────────────────────────────
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# ─── BUILD / DIST ─────────────────────────────────────────────
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# ─── TESTING ──────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ─── LOGS ─────────────────────────────────────────────────────
+*.log
+logs/
+
+# ─── RENDER / CI ──────────────────────────────────────────────
+.render/

@@ -1,0 +1,62 @@
+{% extends 'admin/base.html' %}
+{% block title %}Blog Posts{% endblock %}
+{% block content %}
+<div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <div>
+    <h1>Blog Posts</h1>
+    <p style="color:var(--text-dim);font-size:0.9rem;">{{ posts|length }} post(s) total</p>
+  </div>
+  <a href="{{ url_for('admin.new_blog') }}" class="btn-sm btn-gold">+ New Post</a>
+</div>
+
+<div class="admin-card">
+  <table class="admin-table">
+    <thead>
+      <tr>
+        <th>Title</th><th>Status</th><th>Tags</th><th>Views</th><th>Date</th><th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for post in posts %}
+      <tr>
+        <td>
+          <a href="{{ url_for('blog.post', slug=post.slug) }}" target="_blank"
+             style="color:var(--text);text-decoration:none;font-weight:500;">{{ post.title }}</a>
+          <br><span style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);">/blog/{{ post.slug }}</span>
+        </td>
+        <td>
+          {% if post.is_published %}
+            <span class="badge badge-green">Published</span>
+          {% else %}
+            <span class="badge badge-red">Draft</span>
+          {% endif %}
+        </td>
+        <td style="max-width:140px;">
+          {% if post.tags %}
+            {% for tag in post.tags.split(',')[:2] %}
+              <span class="badge badge-gold" style="margin:2px;">{{ tag.strip() }}</span>
+            {% endfor %}
+          {% else %}—{% endif %}
+        </td>
+        <td style="font-family:var(--font-mono);">{{ post.views }}</td>
+        <td style="font-size:0.82rem;">{{ post.created_at.strftime('%b %d, %Y') }}</td>
+        <td>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+            <a href="{{ url_for('admin.edit_blog', post_id=post.id) }}" class="btn-sm">Edit</a>
+            <form method="POST" action="{{ url_for('admin.delete_blog', post_id=post.id) }}"
+                  onsubmit="return confirm('Delete this post?')" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+              <button type="submit" class="btn-sm btn-sm-danger">Delete</button>
+            </form>
+          </div>
+        </td>
+      </tr>
+      {% else %}
+      <tr><td colspan="6" style="text-align:center;padding:3rem;color:var(--text-dim);">
+        No blog posts yet. <a href="{{ url_for('admin.new_blog') }}" style="color:var(--gold);">Create one!</a>
+      </td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

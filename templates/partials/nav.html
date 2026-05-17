@@ -1,0 +1,23 @@
+{% macro responsive_nav(active_section='', back_url='/', back_label='Home') %}
+<nav id="navbar">
+  <a href="{{ back_url }}" class="nav-logo">DM<span style="color:var(--text-dim)">.</span></a>
+  <ul id="nav-links">
+    <li><a href="{{ url_for('main.index') }}#about"    {% if active_section=='about'   %}style="color:var(--gold)"{% endif %}>About</a></li>
+    <li><a href="{{ url_for('main.index') }}#timeline" {% if active_section=='journey' %}style="color:var(--gold)"{% endif %}>Journey</a></li>
+    <li><a href="{{ url_for('blog.list_blogs') }}"     {% if active_section=='blog'    %}style="color:var(--gold)"{% endif %}>Blog</a></li>
+    <li><a href="{{ url_for('main.index') }}#gallery"  {% if active_section=='gallery' %}style="color:var(--gold)"{% endif %}>Gallery</a></li>
+    <li><a href="{{ url_for('main.index') }}#contact"  {% if active_section=='contact' %}style="color:var(--gold)"{% endif %}>Contact</a></li>
+  </ul>
+  <a href="{{ url_for('admin.dashboard') }}" class="nav-admin-btn">Admin ↗</a>
+  <button id="mobile-menu-btn" aria-label="Open menu" aria-expanded="false">☰</button>
+</nav>
+<div id="mobile-menu" aria-hidden="true">
+  <ul>
+    <li><a href="{{ url_for('main.index') }}#about">About</a></li>
+    <li><a href="{{ url_for('main.index') }}#timeline">Journey</a></li>
+    <li><a href="{{ url_for('blog.list_blogs') }}" {% if active_section=='blog' %}style="color:var(--gold)"{% endif %}>Blog</a></li>
+    <li><a href="{{ url_for('main.index') }}#gallery">Gallery</a></li>
+    <li><a href="{{ url_for('main.index') }}#contact">Contact</a></li>
+  </ul>
+</div>
+{% endmacro %}

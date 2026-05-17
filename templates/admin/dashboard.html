@@ -1,0 +1,154 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="admin-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h1 style="font-size:clamp(1.4rem,3vw,1.9rem);">Dashboard</h1>
+    <p style="color:var(--text-dim);font-size:0.88rem;margin-top:.2rem;">Welcome back, Deepmani 👋 — Here's your site at a glance.</p>
+  </div>
+  <div class="quick-actions">
+    <a href="{{ url_for('admin.new_blog') }}"  class="btn-sm btn-gold">✍️ New Post</a>
+    <a href="{{ url_for('admin.gallery') }}"   class="btn-sm">🖼️ Upload</a>
+    <a href="{{ url_for('admin.journey') }}"   class="btn-sm">🗺️ Journey</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn-sm">📈 Analytics</a>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi-card">
+    <span class="kpi-num">{{ stats.visitors }}</span>
+    <span class="kpi-label">Total Visitors</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-num" style="color:var(--mint);">{{ stats.new_visitors_7d }}</span>
+    <span class="kpi-label">New (7 days)</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-num">{{ stats.blogs }}</span>
+    <span class="kpi-label">Blog Posts</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-num">{{ stats.images }}</span>
+    <span class="kpi-label">Gallery Images</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-num pink">{{ stats.likes }}</span>
+    <span class="kpi-label">Total Likes</span>
+  </div>
+  <div class="kpi-card">
+    <span class="kpi-num red" style="{% if stats.messages == 0 %}color:var(--text-dim){% endif %}">{{ stats.messages }}</span>
+    <span class="kpi-label">Unread Msgs</span>
+  </div>
+</div>
+
+<!-- ROW 1: Visitor trend + Recent messages -->
+<div class="admin-grid-2col" style="margin-bottom:1.5rem;">
+
+  <!-- 30-day visitor sparkline -->
+  <div class="admin-chart-card">
+    <h3>Visitors — Last 30 Days</h3>
+    <canvas id="sparkLine" style="max-height:160px;"></canvas>
+  </div>
+
+  <!-- Recent messages -->
+  <div class="admin-chart-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="margin-bottom:0;">Recent Messages</h3>
+      <a href="{{ url_for('admin.messages') }}" class="btn-sm" style="font-size:.72rem;">View all</a>
+    </div>
+    {% for msg in stats.recent_messages %}
+    <div style="padding:.65rem 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:.75rem;min-width:0;">
+      <div style="width:34px;height:34px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:.8rem;flex-shrink:0;font-family:var(--font-display);">
+        {{ msg.sender_name[0].upper() }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <p style="color:var(--text);font-size:.85rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ msg.sender_name }}</p>
+        <p style="color:var(--text-dim);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ msg.subject or msg.content[:40] }}</p>
+      </div>
+      <span class="badge {% if msg.reply_sent %}badge-green{% elif msg.is_read %}badge-gold{% else %}badge-red{% endif %}" style="flex-shrink:0;font-size:.62rem;">
+        {% if msg.reply_sent %}Replied{% elif msg.is_read %}Read{% else %}New{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:2rem;color:var(--text-dim);font-size:.88rem;">No messages yet 📭</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ROW 2: Recent visitors + content breakdown mini-doughnut -->
+<div class="admin-grid-2col" style="margin-bottom:1.5rem;">
+
+  <!-- Recent visitors -->
+  <div class="admin-chart-card" style="overflow-x:auto;">
+    <h3>Recent Visitors</h3>
+    <table class="admin-table" style="min-width:340px;">
+      <thead><tr><th>IP Address</th><th>Visits</th><th>Last Seen</th></tr></thead>
+      <tbody>
+        {% for v in stats.recent_visitors %}
+        <tr>
+          <td style="font-family:var(--font-mono);font-size:.78rem;">{{ v.ip_address or '—' }}</td>
+          <td><span class="badge badge-gold">{{ v.visit_count }}</span></td>
+          <td style="font-size:.78rem;color:var(--text-dim);">{{ v.last_visit.strftime('%b %d, %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" style="text-align:center;color:var(--text-dim);padding:1.5rem;">No visitors yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Content activity: blog, gallery, etc (mini bar chart) -->
+  <div class="admin-chart-card">
+    <h3>Content Overview</h3>
+    <canvas id="contentBar" style="max-height:190px;"></canvas>
+  </div>
+
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const chartDefaults = {
+  responsive: true, maintainAspectRatio: true,
+  plugins: { legend: { display: false },
+    tooltip: { backgroundColor:'#111827', borderColor:'#C9A84C', borderWidth:1,
+               titleColor:'#C9A84C', bodyColor:'#E8E8E8' } },
+  scales: {
+    x: { ticks:{ color:'#8A9BA8', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' } },
+    y: { ticks:{ color:'#8A9BA8', font:{size:10} }, grid:{ color:'rgba(255,255,255,.04)' }, beginAtZero:true }
+  }
+};
+
+// Spark line
+const dailyData = {{ stats.daily_visitors | tojson }};
+new Chart(document.getElementById('sparkLine'), {
+  type: 'line',
+  data: {
+    labels: dailyData.map(d => d.date.slice(5)),
+    datasets: [{ data: dailyData.map(d => d.count),
+      borderColor:'#C9A84C', backgroundColor:'rgba(201,168,76,.08)',
+      borderWidth:2, tension:0.4, fill:true,
+      pointBackgroundColor:'#C9A84C', pointRadius:3, pointHoverRadius:5 }]
+  },
+  options: { ...chartDefaults, plugins:{ ...chartDefaults.plugins } }
+});
+
+// Content bar
+new Chart(document.getElementById('contentBar'), {
+  type: 'bar',
+  data: {
+    labels: ['Visitors','Blogs','Images','Comments','Likes','Messages'],
+    datasets: [{ data: [
+        {{ stats.visitors }}, {{ stats.blogs }}, {{ stats.images }},
+        {{ stats.comments }}, {{ stats.likes }}, {{ stats.recent_messages|length }}
+      ],
+      backgroundColor: ['rgba(201,168,76,.7)','rgba(64,224,208,.7)',
+        'rgba(201,168,76,.5)','rgba(64,224,208,.5)','rgba(255,107,157,.6)','rgba(255,107,107,.6)'],
+      borderRadius: 6, borderSkipped: false
+    }]
+  },
+  options: { ...chartDefaults }
+});
+</script>
+{% endblock %}

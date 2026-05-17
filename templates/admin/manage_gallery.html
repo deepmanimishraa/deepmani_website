@@ -1,0 +1,117 @@
+{% extends 'admin/base.html' %}
+{% block title %}Gallery{% endblock %}
+{% block content %}
+<div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <div>
+    <h1>Gallery</h1>
+    <p style="color:var(--text-dim);font-size:0.9rem;">{{ images|length }} image(s) · Stored on Cloudinary</p>
+  </div>
+  <button onclick="document.getElementById('upload-modal').classList.remove('hidden')" class="btn-sm btn-gold">+ Upload Image</button>
+</div>
+
+<!-- GALLERY GRID -->
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1rem;margin-bottom:2rem;">
+  {% for img in images %}
+  <div class="admin-card" style="padding:0;overflow:hidden;">
+    <div style="position:relative;aspect-ratio:3/4;">
+      <img src="{{ img.image_url }}" alt="{{ img.title }}"
+           style="width:100%;height:100%;object-fit:cover;" loading="lazy" />
+      <div style="position:absolute;bottom:0;left:0;right:0;background:linear-gradient(transparent,rgba(6,10,15,0.95));padding:1rem;">
+        <p style="color:var(--text);font-size:0.85rem;font-weight:500;margin-bottom:0.25rem;">{{ img.title or 'Untitled' }}</p>
+        <p style="color:var(--text-dim);font-size:0.75rem;font-family:var(--font-mono);">
+          ♥ {{ img.likes|length }} · 💬 {{ img.comments|length }}
+        </p>
+      </div>
+    </div>
+    <div style="padding:0.75rem;display:flex;gap:0.5rem;justify-content:flex-end;">
+      <form method="POST" action="{{ url_for('admin.delete_image', img_id=img.id) }}"
+            onsubmit="return confirm('Delete this image from Cloudinary?')">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+        <button type="submit" class="btn-sm btn-sm-danger">Delete</button>
+      </form>
+    </div>
+  </div>
+  {% else %}
+  <div style="grid-column:1/-1;text-align:center;padding:3rem;color:var(--text-dim);">
+    No images yet. Upload your first one!
+  </div>
+  {% endfor %}
+</div>
+
+<!-- UPLOAD MODAL -->
+<div id="upload-modal" class="modal-overlay hidden">
+  <div class="modal-box" style="max-width:480px;">
+    <button class="modal-close" onclick="document.getElementById('upload-modal').classList.add('hidden')">✕</button>
+    <h3 style="font-family:var(--font-display);color:var(--gold);margin-bottom:1.5rem;">Upload Image to Cloudinary</h3>
+    <p style="color:var(--text-dim);font-size:0.85rem;margin-bottom:1.5rem;">Images are automatically cropped to 3:4 ratio and stored on Cloudinary.</p>
+
+    <form id="upload-form" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div class="form-group">
+        <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);display:block;margin-bottom:0.5rem;">SELECT IMAGE *</label>
+        <input type="file" name="image" id="image-file" accept="image/*" class="form-input" style="padding:0.5rem;" required />
+      </div>
+      <div class="form-group" style="margin-top:1rem;">
+        <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);display:block;margin-bottom:0.5rem;">TITLE</label>
+        <input type="text" name="title" class="form-input" placeholder="e.g. At IIT Madras Convocation" />
+      </div>
+      <div class="form-group" style="margin-top:1rem;">
+        <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);display:block;margin-bottom:0.5rem;">DESCRIPTION</label>
+        <textarea name="description" class="form-input" rows="2" placeholder="Add a caption..."></textarea>
+      </div>
+      <div class="form-group" style="margin-top:1rem;">
+        <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);display:block;margin-bottom:0.5rem;">DATE TAKEN</label>
+        <input type="date" name="taken_at" class="form-input" />
+      </div>
+
+      <div id="upload-progress" style="display:none;margin-top:1rem;">
+        <div style="background:var(--bg-3);border-radius:50px;height:6px;overflow:hidden;">
+          <div id="progress-bar" style="background:var(--gold);height:100%;width:0%;transition:width 0.3s;"></div>
+        </div>
+        <p style="color:var(--text-dim);font-size:0.8rem;margin-top:0.5rem;text-align:center;" id="upload-status">Uploading to Cloudinary...</p>
+      </div>
+
+      <button type="submit" id="upload-btn" class="btn-primary" style="width:100%;margin-top:1.5rem;">Upload Image →</button>
+    </form>
+  </div>
+</div>
+
+<script>
+document.getElementById('upload-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const btn = document.getElementById('upload-btn');
+  const progress = document.getElementById('upload-progress');
+  const bar = document.getElementById('progress-bar');
+  const status = document.getElementById('upload-status');
+
+  btn.disabled = true; btn.textContent = 'Uploading...';
+  progress.style.display = 'block';
+
+  // Animate progress
+  let pct = 0;
+  const interval = setInterval(() => { pct = Math.min(pct + 5, 85); bar.style.width = pct + '%'; }, 200);
+
+  try {
+    const formData = new FormData(this);
+    const res = await fetch('{{ url_for("admin.upload_image") }}', { method: 'POST', body: formData });
+    const data = await res.json();
+    clearInterval(interval);
+    if (data.success) {
+      bar.style.width = '100%';
+      status.textContent = '✓ Uploaded successfully!';
+      status.style.color = 'var(--mint)';
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      status.textContent = 'Upload failed: ' + (data.error || 'Unknown error');
+      status.style.color = '#ff6b6b';
+      btn.disabled = false; btn.textContent = 'Upload Image →';
+    }
+  } catch(err) {
+    clearInterval(interval);
+    status.textContent = 'Error: ' + err.message;
+    status.style.color = '#ff6b6b';
+    btn.disabled = false; btn.textContent = 'Upload Image →';
+  }
+});
+</script>
+{% endblock %}

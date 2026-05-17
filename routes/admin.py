@@ -1,0 +1,304 @@
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
+from flask_login import login_user, logout_user, login_required, current_user
+from models import db, Admin, BlogPost, ImagePost, Journey, Visitor, Message, Comment, Like
+from slugify import slugify
+from datetime import datetime, timedelta
+import cloudinary.uploader
+from sqlalchemy import func, cast, Date # <-- ADDED THIS LINE
+
+admin_bp = Blueprint('admin', __name__)
+
+# ─── AUTH ───────────────────────────────────────────────────
+@admin_bp.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('admin.dashboard'))
+    if request.method == 'POST':
+        admin = Admin.query.filter_by(username=request.form.get('username')).first()
+        if admin and admin.check_password(request.form.get('password', '')):
+            login_user(admin)
+            return redirect(url_for('admin.dashboard'))
+        flash('Invalid credentials', 'danger')
+    return render_template('admin/login.html')
+
+@admin_bp.route('/logout')
+@login_required
+def logout():
+    logout_user()
+    return redirect(url_for('main.index'))
+
+# ─── DASHBOARD ──────────────────────────────────────────────
+@admin_bp.route('/dashboard')
+@login_required
+def dashboard():
+    thirty = datetime.utcnow() - timedelta(days=30)
+    seven  = datetime.utcnow() - timedelta(days=7)
+
+    # Cloud-safe date extraction
+    is_sqlite = 'sqlite' in str(db.engine.url)
+    date_expr = func.date(Visitor.first_visit) if is_sqlite else cast(Visitor.first_visit, Date)
+
+    daily_visitors = (db.session.query(
+            date_expr.label('date'),
+            func.count(Visitor.id).label('count'))
+        .filter(Visitor.first_visit >= thirty)
+        .group_by(date_expr)
+        .all())
+
+    stats = {
+        'visitors':        Visitor.query.count(),
+        'blogs':           BlogPost.query.count(),
+        'images':          ImagePost.query.count(),
+        'messages':        Message.query.filter_by(is_read=False).count(),
+        'comments':        Comment.query.count(),
+        'likes':           Like.query.count(),
+        'new_visitors_7d': Visitor.query.filter(Visitor.first_visit >= seven).count(),
+        'recent_visitors': Visitor.query.order_by(Visitor.last_visit.desc()).limit(8).all(),
+        'recent_messages': Message.query.order_by(Message.created_at.desc()).limit(5).all(),
+        'daily_visitors':  [{'date': str(d.date), 'count': d.count} for d in daily_visitors],
+    }
+    return render_template('admin/dashboard.html', stats=stats)
+
+# ─── BLOG ───────────────────────────────────────────────────
+@admin_bp.route('/blogs')
+@login_required
+def blogs():
+    posts = BlogPost.query.order_by(BlogPost.created_at.desc()).all()
+    return render_template('admin/manage_blogs.html', posts=posts)
+
+@admin_bp.route('/blogs/new', methods=['GET', 'POST'])
+@login_required
+def new_blog():
+    if request.method == 'POST':
+        title      = request.form.get('title', '').strip()
+        content    = request.form.get('content', '').strip()
+        excerpt    = request.form.get('excerpt', '')[:500]
+        tags       = request.form.get('tags', '')
+        cover_url  = request.form.get('cover_image_url', '')
+        published  = request.form.get('is_published') == 'on'
+
+        slug = slugify(title)
+        base, n = slug, 1
+        while BlogPost.query.filter_by(slug=slug).first():
+            slug = f"{base}-{n}"; n += 1
+
+        if 'cover_file' in request.files and request.files['cover_file'].filename:
+            res = cloudinary.uploader.upload(
+                request.files['cover_file'], folder='deepmani/blogs')
+            cover_url = res['secure_url']
+
+        db.session.add(BlogPost(title=title, slug=slug, content=content,
+                                excerpt=excerpt, tags=tags,
+                                cover_image_url=cover_url, is_published=published))
+        db.session.commit()
+        flash('Blog post created!', 'success')
+        return redirect(url_for('admin.blogs'))
+    return render_template('admin/blog_form.html', post=None)
+
+@admin_bp.route('/blogs/edit/<int:post_id>', methods=['GET', 'POST'])
+@login_required
+def edit_blog(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    if request.method == 'POST':
+        post.title        = request.form.get('title', '').strip()
+        post.content      = request.form.get('content', '').strip()
+        post.excerpt      = request.form.get('excerpt', '')[:500]
+        post.tags         = request.form.get('tags', '')
+        post.is_published = request.form.get('is_published') == 'on'
+        post.updated_at   = datetime.utcnow()
+        if 'cover_file' in request.files and request.files['cover_file'].filename:
+            res = cloudinary.uploader.upload(
+                request.files['cover_file'], folder='deepmani/blogs')
+            post.cover_image_url = res['secure_url']
+        db.session.commit()
+        flash('Blog post updated!', 'success')
+        return redirect(url_for('admin.blogs'))
+    return render_template('admin/blog_form.html', post=post)
+
+@admin_bp.route('/blogs/delete/<int:post_id>', methods=['POST'])
+@login_required
+def delete_blog(post_id):
+    post = BlogPost.query.get_or_404(post_id)
+    db.session.delete(post); db.session.commit()
+    flash('Blog post deleted.', 'success')
+    return redirect(url_for('admin.blogs'))
+
+# ─── GALLERY ────────────────────────────────────────────────
+@admin_bp.route('/gallery')
+@login_required
+def gallery():
+    images = ImagePost.query.order_by(ImagePost.created_at.desc()).all()
+    return render_template('admin/manage_gallery.html', images=images)
+
+@admin_bp.route('/gallery/upload', methods=['POST'])
+@login_required
+def upload_image():
+    if 'image' not in request.files or not request.files['image'].filename:
+        return jsonify({'error': 'No file selected'}), 400
+    taken_at_str = request.form.get('taken_at', '')
+    taken_at     = None
+    if taken_at_str:
+        try:
+            taken_at = datetime.strptime(taken_at_str, '%Y-%m-%d').date()
+        except ValueError:
+            pass
+    res = cloudinary.uploader.upload(
+        request.files['image'], folder='deepmani/gallery',
+        transformation=[{'width': 600, 'height': 800, 'crop': 'fill', 'gravity': 'auto'}])
+    img = ImagePost(
+        title=request.form.get('title', '').strip(),
+        description=request.form.get('description', '').strip(),
+        image_url=res['secure_url'],
+        cloudinary_public_id=res['public_id'],
+        taken_at=taken_at,
+    )
+    db.session.add(img); db.session.commit()
+    return jsonify({'success': True, 'url': res['secure_url']})
+
+@admin_bp.route('/gallery/delete/<int:img_id>', methods=['POST'])
+@login_required
+def delete_image(img_id):
+    img = ImagePost.query.get_or_404(img_id)
+    if img.cloudinary_public_id:
+        try:
+            cloudinary.uploader.destroy(img.cloudinary_public_id)
+        except Exception:
+            pass
+    db.session.delete(img); db.session.commit()
+    flash('Image deleted.', 'success')
+    return redirect(url_for('admin.gallery'))
+
+# ─── JOURNEY ────────────────────────────────────────────────
+@admin_bp.route('/journey')
+@login_required
+def journey():
+    entries = Journey.query.order_by(Journey.order_index).all()
+    return render_template('admin/manage_journey.html', entries=entries)
+
+@admin_bp.route('/journey/new', methods=['POST'])
+@login_required
+def new_journey():
+    db.session.add(Journey(
+        year=request.form.get('year', '').strip(),
+        title=request.form.get('title', '').strip(),
+        description=request.form.get('description', '').strip(),
+        icon=request.form.get('icon', 'star'),
+        category=request.form.get('category', 'achievement'),
+        order_index=Journey.query.count() + 1,
+    ))
+    db.session.commit()
+    flash('Journey entry added!', 'success')
+    return redirect(url_for('admin.journey'))
+
+@admin_bp.route('/journey/edit/<int:eid>', methods=['POST'])
+@login_required
+def edit_journey(eid):
+    e = Journey.query.get_or_404(eid)
+    e.year        = request.form.get('year', '').strip()
+    e.title       = request.form.get('title', '').strip()
+    e.description = request.form.get('description', '').strip()
+    e.icon        = request.form.get('icon', 'star')
+    e.category    = request.form.get('category', 'achievement')
+    db.session.commit()
+    flash('Journey entry updated!', 'success')
+    return redirect(url_for('admin.journey'))
+
+@admin_bp.route('/journey/delete/<int:eid>', methods=['POST'])
+@login_required
+def delete_journey(eid):
+    db.session.delete(Journey.query.get_or_404(eid)); db.session.commit()
+    flash('Journey entry deleted.', 'success')
+    return redirect(url_for('admin.journey'))
+
+# ─── MESSAGES ────────────────────────────────────────────────
+@admin_bp.route('/messages')
+@login_required
+def messages():
+    msgs = Message.query.order_by(Message.created_at.desc()).all()
+    Message.query.filter_by(is_read=False).update({'is_read': True})
+    db.session.commit()
+    return render_template('admin/messages.html', messages=msgs)
+
+@admin_bp.route('/messages/reply/<int:msg_id>', methods=['POST'])
+@login_required
+def reply_message(msg_id):
+    msg        = Message.query.get_or_404(msg_id)
+    reply_text = request.form.get('reply', '').strip()
+    try:
+        from app import mail
+        from flask_mail import Message as MailMessage
+        mail.send(MailMessage(
+            subject=f"Re: {msg.subject or 'Your message to Deepmani'}",
+            recipients=[msg.sender_email],
+            body=(
+                f"Hi {msg.sender_name},\n\n{reply_text}\n\n"
+                "—\nDeepmani Mishraa\nCo-Founder, PRAMANIIK | IIT Madras"
+            )
+        ))
+        msg.reply_sent = True; db.session.commit()
+        flash('Reply sent!', 'success')
+    except Exception as e:
+        flash(f'Failed to send reply: {e}', 'danger')
+    return redirect(url_for('admin.messages'))
+
+# ─── ANALYTICS ───────────────────────────────────────────────
+@admin_bp.route('/analytics')
+@login_required
+def analytics():
+    thirty = datetime.utcnow() - timedelta(days=30)
+    is_sqlite = 'sqlite' in str(db.engine.url)
+    
+    # Cloud-safe expressions
+    date_expr = func.date(Visitor.first_visit) if is_sqlite else cast(Visitor.first_visit, Date)
+    hour_expr = func.strftime('%H', Visitor.first_visit) if is_sqlite else func.extract('hour', Visitor.first_visit)
+
+    # Daily visitors (30d)
+    daily = (db.session.query(
+            date_expr.label('date'),
+            func.count(Visitor.id).label('count'))
+        .filter(Visitor.first_visit >= thirty)
+        .group_by(date_expr)
+        .order_by(date_expr)
+        .all())
+
+    blog_views = BlogPost.query.order_by(BlogPost.views.desc()).limit(8).all()
+
+    content_data = {
+        'blogs':    BlogPost.query.count(),
+        'images':   ImagePost.query.count(),
+        'comments': Comment.query.count(),
+        'likes':    Like.query.count(),
+        'messages': Message.query.count(),
+        'visitors': Visitor.query.count(),
+    }
+
+    journey_cats = (db.session.query(
+            Journey.category, func.count(Journey.id))
+        .group_by(Journey.category).all())
+
+    returning = Visitor.query.filter(Visitor.visit_count > 1).count()
+    new_v     = Visitor.query.filter(Visitor.visit_count == 1).count()
+
+    # Hourly distribution
+    hourly = (db.session.query(
+            hour_expr.label('hour'),
+            func.count(Visitor.id).label('count'))
+        .group_by(hour_expr)
+        .all())
+
+    stats = {
+        'total_visitors': content_data['visitors'],
+        'total_blogs':    content_data['blogs'],
+        'total_images':   content_data['images'],
+        'total_messages': content_data['messages'],
+        'total_likes':    content_data['likes'],
+        'total_comments': content_data['comments'],
+        'daily_visitors': [{'date': str(d.date), 'count': d.count} for d in daily],
+        'top_blogs':      blog_views,
+        'content_data':   content_data,
+        'returning':      returning,
+        'new_visitors':   new_v,
+        'hourly':         [{'hour': int(h.hour or 0), 'count': h.count} for h in hourly],
+        'journey_cats':   [{'cat': c, 'count': n} for c, n in journey_cats],
+    }
+    return render_template('admin/analytics.html', stats=stats)

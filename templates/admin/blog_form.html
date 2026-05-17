@@ -1,0 +1,110 @@
+{% extends 'admin/base.html' %}
+{% block title %}{{ 'Edit' if post else 'New' }} Blog Post{% endblock %}
+{% block content %}
+<div class="admin-header" style="display:flex;justify-content:space-between;align-items:center;">
+  <div>
+    <h1>{{ 'Edit' if post else 'New' }} Blog Post</h1>
+    <p style="color:var(--text-dim);font-size:0.9rem;">Write in Markdown · Supports tables, code blocks, headings</p>
+  </div>
+  <a href="{{ url_for('admin.blogs') }}" class="btn-sm">← Back</a>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:1.5rem;">
+    <!-- MAIN EDITOR -->
+    <div>
+      <div class="admin-card">
+        <div class="form-group">
+          <label class="admin-label" style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;display:block;margin-bottom:0.5rem;">Post Title</label>
+          <input type="text" name="title" class="form-input" placeholder="Enter an engaging title..."
+                 value="{{ post.title if post else '' }}" required />
+        </div>
+        <div class="form-group" style="margin-top:1.2rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem;">
+            <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);letter-spacing:0.1em;text-transform:uppercase;">Content (Markdown)</label>
+            <div style="display:flex;gap:0.5rem;">
+              <button type="button" onclick="togglePreview()" class="btn-sm">👁 Preview</button>
+            </div>
+          </div>
+          <textarea name="content" id="md-editor" class="form-input" rows="20"
+                    style="font-family:var(--font-mono);font-size:0.88rem;"
+                    placeholder="# Start writing in Markdown&#10;&#10;**Bold**, *italic*, [links](url)&#10;&#10;```python&#10;print('Hello World')&#10;```">{{ post.content if post else '' }}</textarea>
+          <div id="md-preview" class="blog-post-body" style="display:none;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:1.5rem;min-height:200px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <div class="admin-card" style="margin-bottom:1rem;">
+        <h3 style="font-family:var(--font-display);font-size:0.9rem;color:var(--gold);margin-bottom:1rem;">Publish Settings</h3>
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+          <label class="toggle-switch" style="position:relative;display:inline-block;width:44px;height:24px;">
+            <input type="checkbox" name="is_published" id="is_published"
+                   {% if not post or post.is_published %}checked{% endif %}
+                   style="opacity:0;width:0;height:0;" />
+            <span style="position:absolute;cursor:pointer;inset:0;background:var(--bg-3);border-radius:24px;transition:0.3s;border:1px solid var(--border);"
+                  onclick="this.previousElementSibling.checked=!this.previousElementSibling.checked;this.style.background=this.previousElementSibling.checked?'var(--gold)':'var(--bg-3)'"></span>
+          </label>
+          <span style="color:var(--text-dim);font-size:0.9rem;">Published</span>
+        </div>
+        <button type="submit" class="btn-primary" style="width:100%;">
+          {{ 'Update Post' if post else 'Publish Post' }} →
+        </button>
+      </div>
+
+      <div class="admin-card" style="margin-bottom:1rem;">
+        <h3 style="font-family:var(--font-display);font-size:0.9rem;color:var(--gold);margin-bottom:1rem;">Cover Image</h3>
+        {% if post and post.cover_image_url %}
+          <img src="{{ post.cover_image_url }}" style="width:100%;border-radius:8px;margin-bottom:1rem;" />
+        {% endif %}
+        <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:0.5rem;">UPLOAD NEW</label>
+        <input type="file" name="cover_file" accept="image/*" class="form-input" style="padding:0.5rem;" />
+        <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);display:block;margin:0.75rem 0 0.5rem;">OR URL</label>
+        <input type="text" name="cover_image_url" class="form-input" placeholder="https://..."
+               value="{{ post.cover_image_url if post else '' }}" />
+      </div>
+
+      <div class="admin-card" style="margin-bottom:1rem;">
+        <h3 style="font-family:var(--font-display);font-size:0.9rem;color:var(--gold);margin-bottom:1rem;">SEO & Meta</h3>
+        <div class="form-group">
+          <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:0.4rem;">EXCERPT</label>
+          <textarea name="excerpt" class="form-input" rows="3" placeholder="Brief summary for SEO and previews...">{{ post.excerpt if post else '' }}</textarea>
+        </div>
+        <div class="form-group" style="margin-top:0.75rem;">
+          <label style="font-family:var(--font-mono);font-size:0.72rem;color:var(--text-dim);display:block;margin-bottom:0.4rem;">TAGS (comma-separated)</label>
+          <input type="text" name="tags" class="form-input" placeholder="AI, Python, IIT Madras"
+                 value="{{ post.tags if post else '' }}" />
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<script>
+  // Simple markdown preview
+  function togglePreview() {
+    const editor = document.getElementById('md-editor');
+    const preview = document.getElementById('md-preview');
+    if (preview.style.display === 'none') {
+      preview.style.display = 'block';
+      editor.style.display = 'none';
+      // Simple conversion for preview
+      let text = editor.value;
+      text = text.replace(/^### (.+)/gm, '<h3>$1</h3>')
+                 .replace(/^## (.+)/gm, '<h2>$1</h2>')
+                 .replace(/^# (.+)/gm, '<h1>$1</h1>')
+                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                 .replace(/\*(.+?)\*/g, '<em>$1</em>')
+                 .replace(/`(.+?)`/g, '<code>$1</code>')
+                 .replace(/\n\n/g, '<br><br>');
+      preview.innerHTML = text;
+    } else {
+      preview.style.display = 'none';
+      editor.style.display = 'block';
+    }
+  }
+</script>
+{% endblock %}

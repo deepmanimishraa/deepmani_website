@@ -1,0 +1,73 @@
+{% extends 'admin/base.html' %}
+{% block title %}Messages{% endblock %}
+{% block content %}
+<div class="admin-header">
+  <h1>Messages</h1>
+  <p style="color:var(--text-dim);font-size:0.9rem;">{{ messages|length }} total message(s)</p>
+</div>
+
+{% for msg in messages %}
+<div class="admin-card" style="margin-bottom:1rem;border-left:3px solid {{ 'var(--mint)' if msg.reply_sent else 'var(--gold)' if msg.is_read else '#ff6b6b' }};">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+    <div>
+      <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.5rem;">
+        <strong style="color:var(--text);">{{ msg.sender_name }}</strong>
+        <span style="color:var(--text-dim);font-size:0.85rem;">&lt;{{ msg.sender_email }}&gt;</span>
+        {% if msg.reply_sent %}
+          <span class="badge badge-green">Replied</span>
+        {% elif msg.is_read %}
+          <span class="badge badge-gold">Read</span>
+        {% else %}
+          <span class="badge badge-red">New</span>
+        {% endif %}
+      </div>
+      <div style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-dim);margin-bottom:0.75rem;">
+        {{ msg.created_at.strftime('%B %d, %Y at %H:%M UTC') }}
+      </div>
+      {% if msg.subject %}
+        <div style="color:var(--gold);font-weight:500;margin-bottom:0.5rem;">{{ msg.subject }}</div>
+      {% endif %}
+      <p style="color:var(--text-dim);line-height:1.7;font-size:0.9rem;max-width:600px;">{{ msg.content }}</p>
+    </div>
+    <button onclick="toggleReply({{ msg.id }})" class="btn-sm" style="flex-shrink:0;">
+      Reply via Email
+    </button>
+  </div>
+
+  <!-- REPLY FORM -->
+  <div id="reply-{{ msg.id }}" style="display:none;margin-top:1.5rem;border-top:1px solid var(--border);padding-top:1.5rem;">
+    <form method="POST" action="{{ url_for('admin.reply_message', msg_id=msg.id) }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <div style="margin-bottom:1rem;">
+        <label style="font-family:var(--font-mono);font-size:0.75rem;color:var(--gold);display:block;margin-bottom:0.5rem;">
+          REPLY TO: {{ msg.sender_name }} &lt;{{ msg.sender_email }}&gt;
+        </label>
+        <textarea name="reply" class="form-input" rows="5"
+                  placeholder="Write your reply here...">Hi {{ msg.sender_name }},
+
+Thank you for reaching out!
+
+</textarea>
+      </div>
+      <div style="display:flex;gap:0.75rem;align-items:center;">
+        <button type="submit" class="btn-sm btn-gold">Send Reply →</button>
+        <button type="button" onclick="toggleReply({{ msg.id }})" class="btn-sm">Cancel</button>
+        <span style="color:var(--text-dim);font-size:0.8rem;">Email will be sent from your Gmail</span>
+      </div>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="admin-card" style="text-align:center;padding:3rem;color:var(--text-dim);">
+  <div style="font-size:3rem;margin-bottom:1rem;">📭</div>
+  <p>No messages yet. Share your website to start receiving them!</p>
+</div>
+{% endfor %}
+
+<script>
+function toggleReply(id) {
+  const el = document.getElementById('reply-' + id);
+  el.style.display = el.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}
