@@ -255,11 +255,15 @@ body {
   display: block; margin-top: -0.15em;
   opacity: 0; animation: fadeSlideUp 0.9s 0.7s forwards;
 }
-.hero-typed-wrap {
+
+/* causing page up and downm */
+
+/* .hero-typed-wrap {
   display: flex; align-items: center; gap: 0.75rem;
   margin: 1.2rem 0;
   opacity: 0; animation: fadeSlideUp 0.9s 0.9s forwards;
-}
+} */
+ 
 .hero-typed-prefix { font-family: var(--font-mono); font-size: 0.95rem; color: var(--gold); opacity: 0.6; }
 #typed-text { font-family: var(--font-body); font-size: 1.2rem; font-weight: 500; color: var(--text); }
 .cursor-blink {
@@ -1126,4 +1130,29 @@ body { max-width: 100vw; overflow-x: hidden; }
 /* ── Quick action links ─────────────────────────────── */
 .quick-actions {
   display: flex; flex-wrap: wrap; gap: .75rem;
+}
+
+
+/* ══════════════════════════════════════════════════════════
+   EMERGENCY STABILITY PATCHES
+══════════════════════════════════════════════════════════ */
+
+/* 1. Stop the 3D canvas from swallowing clicks and touch events */
+canvas {
+  pointer-events: none !important;
+  z-index: -1 !important;
+}
+
+/* 2. Force social links and interactive elements to the top layer */
+.hero-social, .hero-social a, nav a, button, input, textarea {
+  position: relative !important;
+  z-index: 50 !important;
+}
+
+/* 3. Stop the typing effect from bouncing the page */
+/* Note: Apply this specific class to the <div> wrapping your typing text */
+.typing-wrapper {
+  min-height: 40px; /* Locks the height so it doesn't collapse when text deletes */
+  display: flex;
+  align-items: center;
 }
