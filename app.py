@@ -63,6 +63,9 @@ def create_app():
         return Admin.query.get(int(user_id))
 
     with app.app_context():
+        # ADD THIS TEMPORARY LINE to delete the old, broken table
+        Journey.__table__.drop(db.engine, checkfirst=True) 
+        
         db.create_all()
         _seed(app)
 
