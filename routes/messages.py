@@ -19,8 +19,8 @@ def send_message():
 
     # ── THE ZERO-TRUST VALIDATION ────────────────────────────
     try:
-        # check_deliverability=True verifies DNS records to ensure the domain accepts mail
-        email_info = validate_email(raw_email, check_deliverability=True)
+        # Changed to False so Render's free tier doesn't timeout/block the request
+        email_info = validate_email(raw_email, check_deliverability=False)
         clean_email = email_info.normalized 
     except EmailNotValidError as e:
         # Blocks fake domains and bad formats instantly

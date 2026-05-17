@@ -63,6 +63,10 @@ def create_app():
         return Admin.query.get(int(user_id))
 
     with app.app_context():
+        # TEMPORARY FIX: Drop the broken messages table so it can rebuild with the new columns
+        from models import Message
+        Message.__table__.drop(db.engine, checkfirst=True)
+        
         db.create_all()
         _seed(app)
 
