@@ -263,7 +263,7 @@ body {
   margin: 1.2rem 0;
   opacity: 0; animation: fadeSlideUp 0.9s 0.9s forwards;
 } */
- 
+
 .hero-typed-prefix { font-family: var(--font-mono); font-size: 0.95rem; color: var(--gold); opacity: 0.6; }
 #typed-text { font-family: var(--font-body); font-size: 1.2rem; font-weight: 500; color: var(--text); }
 .cursor-blink {
@@ -1155,4 +1155,24 @@ canvas {
   min-height: 40px; /* Locks the height so it doesn't collapse when text deletes */
   display: flex;
   align-items: center;
+}
+
+/* ==========================================================
+   NUCLEAR MOBILE TOUCH & UI OVERRIDES 
+========================================================== */
+canvas, #three-canvas, .webgl {
+  pointer-events: none !important;
+  z-index: -999 !important;
+}
+
+html, body {
+  touch-action: pan-y !important;
+  overscroll-behavior-y: auto !important;
+  overflow-x: hidden !important;
+}
+
+.hero-social, .hero-social a, nav, nav a, button, input, textarea, a {
+  position: relative !important;
+  z-index: 9999 !important;
+  pointer-events: auto !important;
 }

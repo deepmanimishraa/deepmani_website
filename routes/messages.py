@@ -17,38 +17,30 @@ def send_message():
     if not name or not raw_email or not content:
         return jsonify({'success': False, 'message': 'Please fill in all required fields.'}), 400
 
-    # ── THE ZERO-TRUST VALIDATION ────────────────────────────
+    # ── THE ZERO-TRUST VALIDATION (DNS BYPASSED FOR CLOUD DEPLOYMENT) ──
     try:
-        # Changed to False so Render's free tier doesn't timeout/block the request
         email_info = validate_email(raw_email, check_deliverability=False)
         clean_email = email_info.normalized 
     except EmailNotValidError as e:
-        # Blocks fake domains and bad formats instantly
         return jsonify({'success': False, 'message': f"Invalid email: {str(e)}"}), 400
-    # ─────────────────────────────────────────────────────────
 
     msg = Message(
-        sender_name=name, sender_email=clean_email, # Uses the validated email
+        sender_name=name, sender_email=clean_email,
         subject=subject, content=content,
         visitor_id=guest_id or None,
     )
     db.session.add(msg)
     db.session.commit()
 
-    # Email notification — silent fail so form always returns success
     try:
         from app import mail
         from flask_mail import Message as MailMessage
         admin_email = current_app.config.get('ADMIN_EMAIL')
         if admin_email and current_app.config.get('MAIL_USERNAME'):
             notification = MailMessage(
-                subject=f"[PRAMANIIK.in] New message from {name}",
+                subject=f"[PRAMANIIK Alert] New message from {name}",
                 recipients=[admin_email],
-                body=(
-                    f"From: {name} <{clean_email}>\n"
-                    f"Subject: {subject}\n\n{content}\n\n"
-                    f"---\nReply at your admin panel → /admin/messages"
-                )
+                body=f"From: {name} <{clean_email}>\nSubject: {subject}\n\n{content}\n\n---\nReply at your admin panel."
             )
             mail.send(notification)
     except Exception as e:
