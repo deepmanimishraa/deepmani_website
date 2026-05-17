@@ -12,6 +12,13 @@ login_manager = LoginManager()
 mail         = Mail()
 csrf         = CSRFProtect()
 
+# ── ADD THESE 4 LINES ────────────────────────────────────
+@login_manager.user_loader
+def load_user(user_id):
+    from models import Admin
+    return Admin.query.get(int(user_id))
+# ─────────────────────────────────────────────────────────
+
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
