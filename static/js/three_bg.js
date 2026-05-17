@@ -33,6 +33,14 @@ const ThreeBG = (() => {
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
     renderer.setClearColor(0x000000, 0);
+    
+    // ── MOBILE UX FIX ────────────────────────────────────────
+    // Forces the canvas to be a "ghost" layer. It will paint the 3D graphics,
+    // but all physical taps, clicks, and scrolls will pass straight through it.
+    renderer.domElement.style.pointerEvents = 'none';
+    renderer.domElement.style.zIndex = '-1';
+    // ─────────────────────────────────────────────────────────
+
     container.appendChild(renderer.domElement);
 
     createParticleNetwork();
