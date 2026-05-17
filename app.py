@@ -63,12 +63,6 @@ def create_app():
         return Admin.query.get(int(user_id))
 
     with app.app_context():
-        # IMPORT IT FIRST
-        from models import Journey 
-        
-        # THEN DROP IT
-        Journey.__table__.drop(db.engine, checkfirst=True) 
-        
         db.create_all()
         _seed(app)
 
