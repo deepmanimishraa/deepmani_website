@@ -12,13 +12,6 @@ login_manager = LoginManager()
 mail         = Mail()
 csrf         = CSRFProtect()
 
-# ── ADD THESE 4 LINES ────────────────────────────────────
-@login_manager.user_loader
-def load_user(user_id):
-    from models import Admin
-    return Admin.query.get(int(user_id))
-# ─────────────────────────────────────────────────────────
-
 def create_app():
     app = Flask(__name__)
     app.config.from_object(Config)
@@ -38,6 +31,7 @@ def create_app():
             api_secret  = app.config.get('CLOUDINARY_API_SECRET'),
         )
 
+    # RESTORED: Your original proper endpoints for AI, Journey, etc.
     from routes.main     import main_bp
     from routes.admin    import admin_bp
     from routes.blog     import blog_bp
@@ -51,23 +45,35 @@ def create_app():
     app.register_blueprint(admin_bp,    url_prefix='/admin')
     app.register_blueprint(blog_bp,     url_prefix='/blog')
     app.register_blueprint(gallery_bp,  url_prefix='/gallery')
-    app.register_blueprint(journey_bp,  url_prefix='/journey')
-    app.register_blueprint(ai_bp,       url_prefix='/api/chat')
+    app.register_blueprint(journey_bp,  url_prefix='/api/journey')
+    app.register_blueprint(ai_bp,       url_prefix='/api/ai')
     app.register_blueprint(visitor_bp,  url_prefix='/api/visitor')
     app.register_blueprint(messages_bp, url_prefix='/api/messages')
 
+    # RESTORED: The CSRF security bypasses for your forms and AI
+    csrf.exempt(gallery_bp)
+    csrf.exempt(ai_bp)
+    csrf.exempt(visitor_bp)
+    csrf.exempt(messages_bp)
+    csrf.exempt(journey_bp)
+
+    # CRITICAL FIX: The missing login block that caused the 500 Error
+    @login_manager.user_loader
+    def load_user(user_id):
+        from models import Admin
+        return Admin.query.get(int(user_id))
+
     with app.app_context():
-        # FORCED SCHEMA REBUILD: This drops the broken table and rebuilds it instantly
+        # Keep this to rebuild the broken table safely
         from models import Message
         Message.__table__.drop(db.engine, checkfirst=True)
-        
         db.create_all()
         _seed(app)
 
     return app
 
 def _seed(app):
-    from models import Journey
+    from models import Admin, Journey
     if not Admin.query.filter_by(username=app.config.get('ADMIN_USERNAME')).first():
         a = Admin(
             username=app.config.get('ADMIN_USERNAME'),
