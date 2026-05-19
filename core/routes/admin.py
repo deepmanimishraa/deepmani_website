@@ -336,9 +336,11 @@ def analytics():
 def fix_db():
     from sqlalchemy import text
     try:
-        # Surgically inject missing columns into the live Postgres database
+        # Surgically inject ALL potentially missing columns
         queries = [
             "ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_email VARCHAR(120);",
+            "ALTER TABLE comments ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64);",
+            "ALTER TABLE comments ADD COLUMN IF NOT EXISTS image_post_id INTEGER;",
             "ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_sent BOOLEAN DEFAULT FALSE;",
             "ALTER TABLE messages ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64);",
             "ALTER TABLE visitors ADD COLUMN IF NOT EXISTS email VARCHAR(120);",
@@ -348,7 +350,7 @@ def fix_db():
             db.session.execute(text(q))
             
         db.session.commit()
-        return "<h2 style='color: #40E0D0; background: #111; padding: 2rem;'>SUCCESS! 🚀<br>Database patched. You can now go to /admin/dashboard</h2>"
+        return "<h2 style='color: #40E0D0; background: #111; padding: 2rem;'>SUCCESS! 🚀<br>Database fully patched. You can now go to /admin/dashboard</h2>"
         
     except Exception as e:
         db.session.rollback()
