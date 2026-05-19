@@ -195,23 +195,21 @@ button { font-family: var(--f-body); }
 /* ══════════════════════════════════════════════════════════
    HERO
 ══════════════════════════════════════════════════════════ */
-/* ══════════════════════════════════════════════════════════
-   HERO
-══════════════════════════════════════════════════════════ */
 #hero {
   min-height: 100vh;
   display: flex; 
-  flex-direction: column;  /* Stacks the badge on top of the content */
-  justify-content: center; /* Centers everything vertically */
-  padding: 130px var(--px) 80px; 
-  position: relative; overflow: hidden;
+  flex-direction: column;
+  justify-content: center;
+  padding: 100px var(--px) 40px; /* Reduced top padding to center it better */
+  position: relative;
+  /* overflow: hidden; REMOVED so mobile screens don't crop the bottom */
 }
 /* ── WELCOME BADGE ── */
 .welcome-badge-container {
   width: 100%;
   display: flex;
   justify-content: center;
-  margin-bottom: 3.5rem; /* Perfect gap below badge */
+  margin-bottom: 1.8rem; /* Tightened from 3.5rem */
   z-index: 10;
   opacity: 0; 
   animation: fadeUp 0.8s forwards;
@@ -246,15 +244,15 @@ button { font-family: var(--f-body); }
 }
 
 /* Mobile Adjustments */
-@media (max-width: 900px) {
+/* @media (max-width: 900px) {
   .welcome-badge-container {
-    margin-bottom: 2.5rem; /* Tighter gap on phones */
+    margin-bottom: 2.5rem; 
   }
   .welcome-badge {
     font-size: 0.7rem;
     padding: 0.4rem 1.2rem;
   }
-}
+} */
 
 /* Hero decorative line */
 #hero::before {
@@ -1070,13 +1068,16 @@ footer span { color: var(--gold); }
 @media (max-width: 900px) {
   #nav-links       { display: none !important; }
   #mobile-menu-btn { display: flex !important; align-items: center; }
-  .hero-content    { flex-direction: column-reverse; align-items: center; text-align: center; gap: 2rem; }
+  .welcome-badge-container {margin-bottom: 2.5rem;}
+  .welcome-badge {font-size: 0.7rem; padding: 0.4rem 1.2rem;}
+  #hero { padding-top: 80px; padding-bottom: 30px; }
+  .profile-ring-outer { width: 190px; height: 190px; }
+  .hero-content    { flex-direction: column-reverse; align-items: center; text-align: center; gap: 1.5rem; }
   .hero-text-col   { width: 100%; }
   .hero-tagline    { margin-left: auto; margin-right: auto; }
   .hero-cta-group  { justify-content: center; }
   .hero-social     { justify-content: center; }
   .hero-profile-col { justify-content: center; width: 100%; }
-  .profile-ring-outer { width: 210px; height: 210px; }
   /* .profile-badge   { right: -8px; font-size: 0.62rem; } */
   .about-card-grid { grid-template-columns: 1fr 1fr; }
   /* Admin sidebar collapse */
