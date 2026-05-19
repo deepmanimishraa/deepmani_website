@@ -1054,14 +1054,18 @@ footer span { color: var(--gold); }
 }
 
 /* ── ≤ 1024px: hide admin btn ── */
+/* ── ≤ 1024px: remove floating animation ── */
 @media (max-width: 1024px) {
   .nav-admin-btn { display: none !important; }
   .about-grid { grid-template-columns: 1fr; gap: 2.5rem; }
   .contact-grid { grid-template-columns: 1fr; gap: 2.5rem; }
   .admin-grid-3col { grid-template-columns: repeat(2,1fr); }
-  
-  /* 🔥 Hides the floating badge on tablets and phones */
   .profile-badge { display: none !important; } 
+
+  /* 🔥 ADD THESE TWO LINES TO KILL THE FLOAT ON MOBILE/TABS */
+  .profile-img-wrap, .profile-badge {
+    animation: none !important;
+  }
 }
 
 /* ── ≤ 900px: mobile nav ── */
