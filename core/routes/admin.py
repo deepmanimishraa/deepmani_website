@@ -341,6 +341,7 @@ def fix_db():
             "ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_email VARCHAR(120);",
             "ALTER TABLE comments ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64);",
             "ALTER TABLE comments ADD COLUMN IF NOT EXISTS image_post_id INTEGER;",
+            "ALTER TABLE comments ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT TRUE;",
             "ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_sent BOOLEAN DEFAULT FALSE;",
             "ALTER TABLE messages ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64);",
             "ALTER TABLE visitors ADD COLUMN IF NOT EXISTS email VARCHAR(120);",
