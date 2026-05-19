@@ -27,18 +27,20 @@ def logout():
     return redirect(url_for('main.index'))
 
 # ─── DASHBOARD ──────────────────────────────────────────────
+# ─── DASHBOARD ──────────────────────────────────────────────
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
-    from sqlalchemy import func
+    from sqlalchemy import func, cast, Date
     thirty = datetime.utcnow() - timedelta(days=30)
     seven  = datetime.utcnow() - timedelta(days=7)
 
+    # 🛠️ Universal Date Extraction (Works on SQLite & PostgreSQL)
     daily_visitors = (db.session.query(
-            func.date(Visitor.first_visit).label('date'),
+            cast(Visitor.first_visit, Date).label('date'),
             func.count(Visitor.id).label('count'))
         .filter(Visitor.first_visit >= thirty)
-        .group_by(func.date(Visitor.first_visit))
+        .group_by(cast(Visitor.first_visit, Date))
         .all())
 
     stats = {
@@ -258,25 +260,24 @@ def reply_message(msg_id):
     return redirect(url_for('admin.messages'))
 
 # ─── ANALYTICS ───────────────────────────────────────────────
+# ─── ANALYTICS ───────────────────────────────────────────────
 @admin_bp.route('/analytics')
 @login_required
 def analytics():
-    from sqlalchemy import func
+    from sqlalchemy import func, cast, Date
     thirty = datetime.utcnow() - timedelta(days=30)
 
-    # Daily visitors (30d)
+    # 🛠️ Universal Date Extraction
     daily = (db.session.query(
-            func.date(Visitor.first_visit).label('date'),
+            cast(Visitor.first_visit, Date).label('date'),
             func.count(Visitor.id).label('count'))
         .filter(Visitor.first_visit >= thirty)
-        .group_by(func.date(Visitor.first_visit))
-        .order_by(func.date(Visitor.first_visit))
+        .group_by(cast(Visitor.first_visit, Date))
+        .order_by(cast(Visitor.first_visit, Date))
         .all())
 
-    # Blog views (all)
     blog_views = BlogPost.query.order_by(BlogPost.views.desc()).limit(8).all()
 
-    # Content breakdown for doughnut
     content_data = {
         'blogs':    BlogPost.query.count(),
         'images':   ImagePost.query.count(),
@@ -286,21 +287,20 @@ def analytics():
         'visitors': Visitor.query.count(),
     }
 
-    # Journey categories
     journey_cats = (db.session.query(
             Journey.category, func.count(Journey.id))
         .group_by(Journey.category).all())
 
-    # Returning vs new visitors
     returning = Visitor.query.filter(Visitor.visit_count > 1).count()
     new_v     = Visitor.query.filter(Visitor.visit_count == 1).count()
 
-    # Hourly distribution (for bar chart)
+    # 🛠️ Safer SQLite detection for hourly chart
+    is_sqlite = db.engine.name == 'sqlite'
     hourly = (db.session.query(
             func.strftime('%H', Visitor.first_visit).label('hour'),
             func.count(Visitor.id).label('count'))
         .group_by(func.strftime('%H', Visitor.first_visit))
-        .all()) if 'sqlite' in str(db.engine.url) else (
+        .all()) if is_sqlite else (
         db.session.query(
             func.extract('hour', Visitor.first_visit).label('hour'),
             func.count(Visitor.id).label('count'))
