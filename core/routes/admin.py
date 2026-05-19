@@ -356,3 +356,32 @@ def fix_db():
     except Exception as e:
         db.session.rollback()
         return f"<h2 style='color: #ff6b6b; background: #111; padding: 2rem;'>Error: {str(e)}</h2>"
+    
+# ─── EMAIL MEDIC ROUTE ───────────────────────────────────────
+@admin_bp.route('/test-email')
+@login_required
+def test_email():
+    from flask_mail import Message as MailMessage
+    from core import mail
+    from flask import current_app
+    import traceback
+    
+    try:
+        sender_email = current_app.config.get('MAIL_USERNAME')
+        admin_email = current_app.config.get('ADMIN_EMAIL')
+        
+        if not sender_email or not admin_email:
+            return "<h2 style='color: #ff6b6b; background: #111; padding: 2rem;'>Error: Environment variables for email are missing in Render!</h2>"
+
+        msg = MailMessage(
+            subject="🚀 Diagnostic Test from Your Server",
+            sender=sender_email,
+            recipients=[admin_email],
+            body="If you are reading this, your Google App Password and SMTP connection are working perfectly!"
+        )
+        mail.send(msg)
+        return "<h2 style='color: #40E0D0; background: #111; padding: 2rem;'>SUCCESS! 🚀<br>Email sent successfully. Check your inbox right now!</h2>"
+        
+    except Exception as e:
+        # Prints the exact crash report to your screen
+        return f"<div style='color:#ff6b6b; background:#111; padding:3rem; font-family:monospace; height:100vh; overflow:auto;'><h2>Email Connection Crash Report</h2><pre>{traceback.format_exc()}</pre></div>"

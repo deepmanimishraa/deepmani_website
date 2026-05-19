@@ -6,6 +6,7 @@
   <title>{{ post.title }} — Deepmani Mishraa</title>
   <meta name="description" content="{{ post.excerpt or post.title }}" />
   {% if post.cover_image_url %}<meta property="og:image" content="{{ post.cover_image_url }}" />{% endif %}
+  <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
