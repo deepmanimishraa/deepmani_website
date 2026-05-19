@@ -1,0 +1,102 @@
+{% extends 'admin/base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="admin-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h1>Dashboard</h1>
+    <p style="color:var(--text-dim);font-size:.86rem;margin-top:.2rem;">Welcome back, Deepmani 👋</p>
+  </div>
+  <div class="quick-actions">
+    <a href="{{ url_for('admin.new_blog') }}"  class="btn-sm btn-gold">✍️ New Post</a>
+    <a href="{{ url_for('admin.gallery') }}"   class="btn-sm">🖼️ Upload</a>
+    <a href="{{ url_for('admin.journey') }}"   class="btn-sm">🗺️ Journey</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn-sm">📈 Analytics</a>
+  </div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi-card"><span class="kpi-num">{{ stats.visitors }}</span><span class="kpi-label">Total Visitors</span></div>
+  <div class="kpi-card"><span class="kpi-num mint">{{ stats.new_visitors_7d }}</span><span class="kpi-label">New (7d)</span></div>
+  <div class="kpi-card"><span class="kpi-num">{{ stats.blogs }}</span><span class="kpi-label">Blog Posts</span></div>
+  <div class="kpi-card"><span class="kpi-num">{{ stats.images }}</span><span class="kpi-label">Images</span></div>
+  <div class="kpi-card"><span class="kpi-num pink">{{ stats.likes }}</span><span class="kpi-label">Likes</span></div>
+  <div class="kpi-card"><span class="kpi-num {% if stats.messages > 0 %}red{% endif %}">{{ stats.messages }}</span><span class="kpi-label">Unread Msgs</span></div>
+</div>
+
+<!-- ROW 1 -->
+<div class="admin-grid-2col" style="margin-bottom:1.4rem;">
+  <div class="admin-chart-card">
+    <h3>📈 Visitors — Last 30 Days</h3>
+    <canvas id="sparkLine" style="max-height:160px;"></canvas>
+  </div>
+  <div class="admin-chart-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+      <h3 style="margin-bottom:0;">💬 Recent Messages</h3>
+      <a href="{{ url_for('admin.messages') }}" class="btn-sm" style="font-size:.7rem;">View all</a>
+    </div>
+    {% for msg in stats.recent_messages %}
+    <div style="padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05);display:flex;align-items:center;gap:.7rem;min-width:0;">
+      <div style="width:32px;height:32px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;color:var(--gold);font-size:.78rem;flex-shrink:0;font-family:var(--f-display);">{{ msg.sender_name[0].upper() }}</div>
+      <div style="flex:1;min-width:0;">
+        <p style="color:var(--text);font-size:.83rem;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ msg.sender_name }}</p>
+        <p style="color:var(--text-dim);font-size:.72rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ msg.subject or msg.content[:40] }}</p>
+      </div>
+      <span class="badge {% if msg.reply_sent %}badge-green{% elif msg.is_read %}badge-gold{% else %}badge-red{% endif %}" style="flex-shrink:0;font-size:.6rem;">
+        {% if msg.reply_sent %}Replied{% elif msg.is_read %}Read{% else %}New{% endif %}
+      </span>
+    </div>
+    {% else %}
+    <div style="text-align:center;padding:2rem 0;color:var(--text-dim);font-size:.86rem;">No messages yet 📭</div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- ROW 2 -->
+<div class="admin-grid-2col" style="margin-bottom:1.4rem;">
+  <div class="admin-chart-card" style="overflow-x:auto;">
+    <h3>👥 Recent Visitors</h3>
+    <table class="admin-table">
+      <thead><tr><th>IP Address</th><th>Visits</th><th>Last Seen</th></tr></thead>
+      <tbody>
+        {% for v in stats.recent_visitors %}
+        <tr>
+          <td style="font-family:var(--f-mono);font-size:.76rem;">{{ v.ip_address or '—' }}</td>
+          <td><span class="badge badge-gold">{{ v.visit_count }}</span></td>
+          <td style="font-size:.76rem;color:var(--text-dim);">{{ v.last_visit.strftime('%b %d, %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" style="text-align:center;color:var(--text-dim);padding:1.5rem;">No visitors yet</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="admin-chart-card">
+    <h3>📊 Content Overview</h3>
+    <canvas id="contentBar" style="max-height:190px;"></canvas>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const C = { gold:'#C9A84C', mint:'#40E0D0', dim:'#7A8FA0', bg3:'#0D1424' };
+const base = {
+  responsive:true, maintainAspectRatio:true,
+  plugins:{ legend:{display:false}, tooltip:{backgroundColor:C.bg3,borderColor:C.gold,borderWidth:1,titleColor:C.gold,bodyColor:'#EEF0F4'} },
+  scales:{ x:{ticks:{color:C.dim,font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}, y:{ticks:{color:C.dim,font:{size:10}},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true} }
+};
+const daily = {{ stats.daily_visitors|tojson }};
+new Chart(document.getElementById('sparkLine'),{
+  type:'line',
+  data:{ labels:daily.map(d=>d.date.slice(5)), datasets:[{data:daily.map(d=>d.count),borderColor:C.gold,backgroundColor:'rgba(201,168,76,.08)',borderWidth:2,tension:.4,fill:true,pointBackgroundColor:C.gold,pointRadius:3,pointHoverRadius:5}] },
+  options:base
+});
+new Chart(document.getElementById('contentBar'),{
+  type:'bar',
+  data:{ labels:['Visitors','Blogs','Images','Comments','Likes','Msgs'],
+    datasets:[{data:[{{ stats.visitors }},{{ stats.blogs }},{{ stats.images }},{{ stats.comments }},{{ stats.likes }},{{ stats.messages }}],
+    backgroundColor:['rgba(201,168,76,.7)','rgba(64,224,208,.7)','rgba(201,168,76,.5)','rgba(64,224,208,.5)','rgba(255,107,157,.6)','rgba(255,107,107,.6)'],borderRadius:5,borderSkipped:false}] },
+  options:base
+});
+</script>
+{% endblock %}

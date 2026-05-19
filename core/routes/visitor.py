@@ -1,6 +1,6 @@
 # routes/visitor.py
 from flask import Blueprint, jsonify, request
-from models import db, Visitor
+from core.models import db, Visitor
 from datetime import datetime
 visitor_bp = Blueprint('visitor', __name__)
 

@@ -1,6 +1,6 @@
 # routes/journey.py
 from flask import Blueprint, jsonify
-from models import Journey
+from core.models import Journey
 journey_bp = Blueprint('journey', __name__)
 
 @journey_bp.route('/list')

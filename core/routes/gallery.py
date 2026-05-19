@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from models import db, ImagePost, Like, Comment
+from core.models import db, ImagePost, Like, Comment
 
 gallery_bp = Blueprint('gallery', __name__)
 

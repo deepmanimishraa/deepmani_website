@@ -1,0 +1,39 @@
+{% from 'partials/nav.html' import responsive_nav %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>{{ post.title }} — Deepmani Mishraa</title>
+  <meta name="description" content="{{ post.excerpt or post.title }}" />
+  {% if post.cover_image_url %}<meta property="og:image" content="{{ post.cover_image_url }}" />{% endif %}
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+<div class="content-wrap">
+{{ responsive_nav(active_section='blog') }}
+<div class="blog-post-header">
+  {% if post.tags %}<div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1rem;">{% for tag in post.tags.split(',') %}<span class="blog-tag">{{ tag.strip() }}</span>{% endfor %}</div>{% endif %}
+  <h1 class="blog-post-title">{{ post.title }}</h1>
+  <div class="blog-post-meta">By <strong style="color:var(--gold);">Deepmani Mishraa</strong> &nbsp;·&nbsp; {{ post.created_at.strftime('%B %d, %Y') }} &nbsp;·&nbsp; {{ post.views }} views</div>
+  {% if post.cover_image_url %}<img src="{{ post.cover_image_url }}" alt="{{ post.title }}" style="width:100%;max-width:860px;border-radius:var(--radius);margin-top:2rem;max-height:440px;object-fit:cover;display:block;" />{% endif %}
+</div>
+<article class="blog-post-body">{{ content_html | safe }}</article>
+<div style="max-width:760px;margin:0 auto;padding:0 var(--px) 3rem;">
+  <div class="card" style="padding:1.6rem;display:flex;gap:1.3rem;align-items:center;flex-wrap:wrap;">
+    <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--gold),var(--gold-dark));display:flex;align-items:center;justify-content:center;font-family:var(--f-display);font-size:1.1rem;color:#0A0A0A;font-weight:700;flex-shrink:0;">DM</div>
+    <div style="flex:1;min-width:0;">
+      <p style="font-family:var(--f-display);font-size:.9rem;color:var(--gold);">Deepmani Mishraa</p>
+      <p style="font-size:.78rem;color:var(--text-dim);margin-top:.2rem;">IIT Madras · Co-Founder @ PRAMANIIK · Data Scientist</p>
+      <div style="display:flex;gap:.7rem;margin-top:.7rem;flex-wrap:wrap;">
+        <a href="{{ url_for('main.index') }}#contact" class="btn-outline" style="padding:6px 16px;font-size:.76rem;">Connect</a>
+        <a href="{{ url_for('blog.list_blogs') }}" style="padding:6px 16px;font-size:.76rem;color:var(--text-dim);text-decoration:none;border:1px solid var(--border-2);border-radius:50px;">More Posts</a>
+      </div>
+    </div>
+  </div>
+</div>
+<footer><p style="font-family:var(--f-display);font-size:1rem;color:var(--gold);margin-bottom:.4rem;">DEEPMANI MISHRAA</p><p style="font-size:.73rem;color:var(--text-dim);">© 2024 · <a href="{{ url_for('blog.list_blogs') }}" style="color:var(--gold);text-decoration:none;">← All Posts</a> &nbsp;·&nbsp; <a href="{{ url_for('main.index') }}" style="color:var(--text-dim);text-decoration:none;">Home</a></p></footer>
+</div>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body></html>

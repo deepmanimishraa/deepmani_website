@@ -1,6 +1,6 @@
 # routes/blog.py
 from flask import Blueprint, render_template, abort, request
-from models import db, BlogPost
+from core.models import db, BlogPost
 import markdown as md
 
 blog_bp = Blueprint('blog', __name__)

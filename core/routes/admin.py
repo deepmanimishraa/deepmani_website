@@ -1,10 +1,9 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify
 from flask_login import login_user, logout_user, login_required, current_user
-from models import db, Admin, BlogPost, ImagePost, Journey, Visitor, Message, Comment, Like
+from core.models import db, Admin, BlogPost, ImagePost, Journey, Visitor, Message, Comment, Like
 from slugify import slugify
 from datetime import datetime, timedelta
 import cloudinary.uploader
-from sqlalchemy import func, cast, Date # <-- ADDED THIS LINE
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -31,18 +30,15 @@ def logout():
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
+    from sqlalchemy import func
     thirty = datetime.utcnow() - timedelta(days=30)
     seven  = datetime.utcnow() - timedelta(days=7)
 
-    # Cloud-safe date extraction
-    is_sqlite = 'sqlite' in str(db.engine.url)
-    date_expr = func.date(Visitor.first_visit) if is_sqlite else cast(Visitor.first_visit, Date)
-
     daily_visitors = (db.session.query(
-            date_expr.label('date'),
+            func.date(Visitor.first_visit).label('date'),
             func.count(Visitor.id).label('count'))
         .filter(Visitor.first_visit >= thirty)
-        .group_by(date_expr)
+        .group_by(func.date(Visitor.first_visit))
         .all())
 
     stats = {
@@ -222,47 +218,65 @@ def messages():
 @admin_bp.route('/messages/reply/<int:msg_id>', methods=['POST'])
 @login_required
 def reply_message(msg_id):
+    from threading import Thread
+    from core import mail
+    from flask_mail import Message as MailMessage
+    from flask import current_app
+    
     msg        = Message.query.get_or_404(msg_id)
     reply_text = request.form.get('reply', '').strip()
-    try:
-        from app import mail
-        from flask_mail import Message as MailMessage
-        mail.send(MailMessage(
-            subject=f"Re: {msg.subject or 'Your message to Deepmani'}",
-            recipients=[msg.sender_email],
-            body=(
-                f"Hi {msg.sender_name},\n\n{reply_text}\n\n"
-                "—\nDeepmani Mishraa\nCo-Founder, PRAMANIIK | IIT Madras"
-            )
-        ))
-        msg.reply_sent = True; db.session.commit()
-        flash('Reply sent!', 'success')
-    except Exception as e:
-        flash(f'Failed to send reply: {e}', 'danger')
+    mail_user  = current_app.config.get('MAIL_USERNAME')
+    
+    # 1. Prepare the email
+    email_msg = MailMessage(
+        subject=f"Re: {msg.subject or 'Your message to Deepmani'}",
+        sender=mail_user,
+        recipients=[msg.sender_email],
+        body=(
+            f"Hi {msg.sender_name},\n\n{reply_text}\n\n"
+            "—\nDeepmani Mishraa\nCo-Founder, PRAMANIIK | IIT Madras"
+        )
+    )
+    
+    # 2. Define the background worker
+    def send_async_reply(app, email_to_send):
+        with app.app_context():
+            try:
+                mail.send(email_to_send)
+            except Exception as e:
+                print(f"\n🔥 ADMIN REPLY ERROR: {str(e)}\n")
+
+    # 3. 🚀 Fire and Forget!
+    app = current_app._get_current_object()
+    Thread(target=send_async_reply, args=(app, email_msg)).start()
+    
+    # 4. Instantly update DB and return to dashboard
+    msg.reply_sent = True
+    db.session.commit()
+    flash('Reply sent!', 'success')
+    
     return redirect(url_for('admin.messages'))
 
 # ─── ANALYTICS ───────────────────────────────────────────────
 @admin_bp.route('/analytics')
 @login_required
 def analytics():
+    from sqlalchemy import func
     thirty = datetime.utcnow() - timedelta(days=30)
-    is_sqlite = 'sqlite' in str(db.engine.url)
-    
-    # Cloud-safe expressions
-    date_expr = func.date(Visitor.first_visit) if is_sqlite else cast(Visitor.first_visit, Date)
-    hour_expr = func.strftime('%H', Visitor.first_visit) if is_sqlite else func.extract('hour', Visitor.first_visit)
 
     # Daily visitors (30d)
     daily = (db.session.query(
-            date_expr.label('date'),
+            func.date(Visitor.first_visit).label('date'),
             func.count(Visitor.id).label('count'))
         .filter(Visitor.first_visit >= thirty)
-        .group_by(date_expr)
-        .order_by(date_expr)
+        .group_by(func.date(Visitor.first_visit))
+        .order_by(func.date(Visitor.first_visit))
         .all())
 
+    # Blog views (all)
     blog_views = BlogPost.query.order_by(BlogPost.views.desc()).limit(8).all()
 
+    # Content breakdown for doughnut
     content_data = {
         'blogs':    BlogPost.query.count(),
         'images':   ImagePost.query.count(),
@@ -272,18 +286,25 @@ def analytics():
         'visitors': Visitor.query.count(),
     }
 
+    # Journey categories
     journey_cats = (db.session.query(
             Journey.category, func.count(Journey.id))
         .group_by(Journey.category).all())
 
+    # Returning vs new visitors
     returning = Visitor.query.filter(Visitor.visit_count > 1).count()
     new_v     = Visitor.query.filter(Visitor.visit_count == 1).count()
 
-    # Hourly distribution
+    # Hourly distribution (for bar chart)
     hourly = (db.session.query(
-            hour_expr.label('hour'),
+            func.strftime('%H', Visitor.first_visit).label('hour'),
             func.count(Visitor.id).label('count'))
-        .group_by(hour_expr)
+        .group_by(func.strftime('%H', Visitor.first_visit))
+        .all()) if 'sqlite' in str(db.engine.url) else (
+        db.session.query(
+            func.extract('hour', Visitor.first_visit).label('hour'),
+            func.count(Visitor.id).label('count'))
+        .group_by(func.extract('hour', Visitor.first_visit))
         .all())
 
     stats = {

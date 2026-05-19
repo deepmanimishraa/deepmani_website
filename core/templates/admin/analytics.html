@@ -1,0 +1,130 @@
+{% extends 'admin/base.html' %}
+{% block title %}Analytics{% endblock %}
+{% block content %}
+<div class="admin-header">
+  <h1>Analytics</h1>
+  <p style="color:var(--text-dim);font-size:.86rem;">Deep insights into your website performance</p>
+</div>
+
+<div class="kpi-strip">
+  <div class="kpi-card"><span class="kpi-num">{{ stats.total_visitors }}</span><span class="kpi-label">Total Visitors</span></div>
+  <div class="kpi-card"><span class="kpi-num mint">{{ stats.new_visitors }}</span><span class="kpi-label">New Visitors</span></div>
+  <div class="kpi-card"><span class="kpi-num" style="color:#E4C97A;">{{ stats.returning }}</span><span class="kpi-label">Returning</span></div>
+  <div class="kpi-card"><span class="kpi-num">{{ stats.total_blogs }}</span><span class="kpi-label">Blog Posts</span></div>
+  <div class="kpi-card"><span class="kpi-num pink">{{ stats.total_likes }}</span><span class="kpi-label">Total Likes</span></div>
+  <div class="kpi-card"><span class="kpi-num mint">{{ stats.total_comments }}</span><span class="kpi-label">Comments</span></div>
+</div>
+
+<!-- ROW 1: Line + Hourly Bar -->
+<div class="admin-grid-2col" style="margin-bottom:1.4rem;">
+  <div class="admin-chart-card">
+    <h3>📈 Daily Visitors — Last 30 Days</h3>
+    <canvas id="lineChart" style="max-height:220px;"></canvas>
+  </div>
+  <div class="admin-chart-card">
+    <h3>🕐 Activity by Hour of Day</h3>
+    <canvas id="hourlyBar" style="max-height:220px;"></canvas>
+  </div>
+</div>
+
+<!-- ROW 2: Doughnuts + Top blogs -->
+<div class="admin-grid-3col" style="margin-bottom:1.4rem;">
+  <div class="admin-chart-card" style="display:flex;flex-direction:column;align-items:center;">
+    <h3 style="width:100%;">🗂️ Content Breakdown</h3>
+    <canvas id="contentDoughnut" style="max-height:190px;max-width:190px;"></canvas>
+    <div style="margin-top:1rem;width:100%;">
+      {% set lbls = ['Blogs','Images','Comments','Likes','Messages'] %}
+      {% set vals = [stats.content_data.blogs,stats.content_data.images,stats.content_data.comments,stats.content_data.likes,stats.content_data.messages] %}
+      {% set cols = ['#C9A84C','#40E0D0','#E4C97A','#ff6b9d','#ff6b6b'] %}
+      {% for i in range(lbls|length) %}
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:.28rem 0;border-bottom:1px solid rgba(255,255,255,.04);">
+        <div style="display:flex;align-items:center;gap:.4rem;">
+          <div style="width:9px;height:9px;border-radius:50%;background:{{ cols[i] }};flex-shrink:0;"></div>
+          <span style="font-size:.78rem;color:var(--text-dim);">{{ lbls[i] }}</span>
+        </div>
+        <span style="font-family:var(--f-mono);font-size:.78rem;color:var(--text);">{{ vals[i] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div class="admin-chart-card" style="display:flex;flex-direction:column;align-items:center;">
+    <h3 style="width:100%;">👥 Visitor Loyalty</h3>
+    <canvas id="loyaltyPie" style="max-height:190px;max-width:190px;"></canvas>
+    <div style="margin-top:1rem;width:100%;display:flex;flex-direction:column;gap:.5rem;">
+      <div style="display:flex;justify-content:space-between;padding:.4rem .8rem;background:var(--mint-dim);border-radius:8px;">
+        <span style="color:var(--mint);font-size:.83rem;">New Visitors</span>
+        <strong style="color:var(--mint);font-family:var(--f-mono);">{{ stats.new_visitors }}</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:.4rem .8rem;background:var(--gold-dim);border-radius:8px;">
+        <span style="color:var(--gold);font-size:.83rem;">Returning</span>
+        <strong style="color:var(--gold);font-family:var(--f-mono);">{{ stats.returning }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <div class="admin-chart-card">
+    <h3>🏆 Top Posts by Views</h3>
+    {% if stats.top_blogs %}
+      {% for post in stats.top_blogs %}
+      <div style="padding:.55rem 0;border-bottom:1px solid rgba(255,255,255,.04);">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.5rem;">
+          <p style="color:var(--text);font-size:.8rem;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ post.title }}</p>
+          <span class="badge badge-gold" style="flex-shrink:0;font-size:.62rem;">{{ post.views }}v</span>
+        </div>
+        <div style="background:rgba(255,255,255,.06);border-radius:4px;height:3px;margin-top:.35rem;">
+          {% set max_v = stats.top_blogs[0].views if stats.top_blogs[0].views > 0 else 1 %}
+          <div style="background:var(--gold);height:100%;border-radius:4px;width:{{ [(post.views/max_v*100)|int,100]|min }}%;"></div>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+    <p style="color:var(--text-dim);text-align:center;padding:2rem 0;font-size:.85rem;">No posts yet</p>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ROW 3: Full-width cumulative growth -->
+<div class="admin-chart-card">
+  <h3>📊 Cumulative Visitor Growth (30 Days)</h3>
+  <canvas id="growthLine" style="max-height:170px;"></canvas>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+const C={gold:'#C9A84C',mint:'#40E0D0',pink:'#ff6b9d',red:'#ff6b6b',dim:'#7A8FA0',bg3:'#0D1424'};
+const base={responsive:true,maintainAspectRatio:true,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:C.bg3,borderColor:C.gold,borderWidth:1,titleColor:C.gold,bodyColor:'#EEF0F4',padding:10}},
+  scales:{x:{ticks:{color:C.dim,font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:C.dim,font:{size:10}},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}};
+const daily={{stats.daily_visitors|tojson}};
+const labels=daily.map(d=>d.date.slice(5));
+const counts=daily.map(d=>d.count);
+const cumsum=counts.reduce((a,v,i)=>{a.push((a[i-1]||0)+v);return a;},[]);
+
+new Chart(document.getElementById('lineChart'),{type:'line',
+  data:{labels,datasets:[{data:counts,borderColor:C.gold,backgroundColor:'rgba(201,168,76,.1)',borderWidth:2.5,tension:.4,fill:true,pointBackgroundColor:C.gold,pointRadius:3,pointHoverRadius:5}]},options:base});
+
+const hr={{stats.hourly|tojson}};
+const hm={};hr.forEach(h=>{hm[h.hour]=h.count;});
+const hl=Array.from({length:24},(_,i)=>String(i).padStart(2,'0')+':00');
+const hv=Array.from({length:24},(_,i)=>hm[i]||0);
+const mx=Math.max(...hv,1);
+new Chart(document.getElementById('hourlyBar'),{type:'bar',
+  data:{labels:hl,datasets:[{data:hv,backgroundColor:hv.map(v=>`rgba(201,168,76,${(.3+v/mx*.6).toFixed(2)})`),borderRadius:3,borderSkipped:false}]},
+  options:{...base,scales:{x:{ticks:{color:C.dim,font:{size:9},maxRotation:45},grid:{color:'rgba(255,255,255,.04)'}},y:{ticks:{color:C.dim,font:{size:9}},grid:{color:'rgba(255,255,255,.04)'},beginAtZero:true}}}});
+
+new Chart(document.getElementById('contentDoughnut'),{type:'doughnut',
+  data:{labels:['Blogs','Images','Comments','Likes','Messages'],
+    datasets:[{data:[{{stats.content_data.blogs}},{{stats.content_data.images}},{{stats.content_data.comments}},{{stats.content_data.likes}},{{stats.content_data.messages}}],
+    backgroundColor:[C.gold,C.mint,'#E4C97A',C.pink,C.red],borderColor:C.bg3,borderWidth:3,hoverOffset:5}]},
+  options:{responsive:true,maintainAspectRatio:true,cutout:'65%',plugins:{legend:{display:false},tooltip:{backgroundColor:C.bg3,borderColor:C.gold,borderWidth:1,titleColor:C.gold,bodyColor:'#EEF0F4'}}}});
+
+new Chart(document.getElementById('loyaltyPie'),{type:'doughnut',
+  data:{labels:['New','Returning'],datasets:[{data:[{{stats.new_visitors}},{{stats.returning}}],backgroundColor:[C.mint,C.gold],borderColor:C.bg3,borderWidth:3,hoverOffset:5}]},
+  options:{responsive:true,maintainAspectRatio:true,cutout:'60%',plugins:{legend:{display:false},tooltip:{backgroundColor:C.bg3,borderColor:C.gold,borderWidth:1,titleColor:C.gold,bodyColor:'#EEF0F4'}}}});
+
+new Chart(document.getElementById('growthLine'),{type:'line',
+  data:{labels,datasets:[{label:'Cumulative',data:cumsum,borderColor:C.mint,backgroundColor:'rgba(64,224,208,.07)',borderWidth:2.5,tension:.4,fill:true,pointBackgroundColor:C.mint,pointRadius:2,pointHoverRadius:4}]},
+  options:{...base,plugins:{...base.plugins,legend:{display:true,labels:{color:C.dim,font:{size:11}}}}}});
+</script>
+{% endblock %}

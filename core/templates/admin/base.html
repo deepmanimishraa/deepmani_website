@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>{% block title %}Admin{% endblock %} — Deepmani CMS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="admin-body">
+
+  <!-- Sidebar -->
+  <aside class="admin-sidebar">
+    <div class="admin-sidebar-header">
+      <h1>DM<span style="color:var(--text-dim);">.</span>cms</h1>
+      <p>Deepmani Mishraa</p>
+    </div>
+    <nav class="admin-nav">
+      <a href="{{ url_for('admin.dashboard') }}" class="{{ 'active' if request.endpoint=='admin.dashboard' else '' }}">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </a>
+      <a href="{{ url_for('admin.blogs') }}" class="{{ 'active' if 'blog' in request.endpoint else '' }}">
+        <span class="nav-icon">✍️</span><span>Blog Posts</span>
+      </a>
+      <a href="{{ url_for('admin.gallery') }}" class="{{ 'active' if 'gallery' in request.endpoint else '' }}">
+        <span class="nav-icon">🖼️</span><span>Gallery</span>
+      </a>
+      <a href="{{ url_for('admin.journey') }}" class="{{ 'active' if 'journey' in request.endpoint else '' }}">
+        <span class="nav-icon">🗺️</span><span>Journey</span>
+      </a>
+      <a href="{{ url_for('admin.messages') }}" class="{{ 'active' if 'message' in request.endpoint else '' }}">
+        <span class="nav-icon">💬</span><span>Messages</span>
+      </a>
+      <a href="{{ url_for('admin.analytics') }}" class="{{ 'active' if 'analytics' in request.endpoint else '' }}">
+        <span class="nav-icon">📈</span><span>Analytics</span>
+      </a>
+      <div class="nav-sep"></div>
+      <a href="{{ url_for('main.index') }}">
+        <span class="nav-icon">🌐</span><span>View Site</span>
+      </a>
+      <a href="{{ url_for('admin.logout') }}" style="color:#ff6b6b;">
+        <span class="nav-icon">🚪</span><span>Logout</span>
+      </a>
+    </nav>
+  </aside>
+
+  <!-- Mobile top bar (≤ 640px) -->
+  <div class="admin-topbar-mobile" style="display:none;">
+    <span style="font-family:var(--f-display);color:var(--gold);font-weight:700;font-size:.85rem;flex-shrink:0;">DM.cms</span>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn-sm" title="Dashboard">📊</a>
+    <a href="{{ url_for('admin.blogs') }}"     class="btn-sm" title="Blogs">✍️</a>
+    <a href="{{ url_for('admin.gallery') }}"   class="btn-sm" title="Gallery">🖼️</a>
+    <a href="{{ url_for('admin.journey') }}"   class="btn-sm" title="Journey">🗺️</a>
+    <a href="{{ url_for('admin.messages') }}"  class="btn-sm" title="Messages">💬</a>
+    <a href="{{ url_for('admin.analytics') }}" class="btn-sm" title="Analytics">📈</a>
+    <a href="{{ url_for('main.index') }}"      class="btn-sm" style="margin-left:auto;" title="Site">🌐</a>
+    <a href="{{ url_for('admin.logout') }}"    class="btn-sm" style="color:#ff6b6b;" title="Logout">🚪</a>
+  </div>
+
+  <main class="admin-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in messages %}
+        <div class="flash-msg flash-{{ cat }}" style="margin-bottom:1rem;">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    // Show mobile topbar when sidebar is hidden
+    if (window.innerWidth <= 640) {
+      document.querySelector('.admin-topbar-mobile').style.display = 'flex';
+    }
+    window.addEventListener('resize', () => {
+      const tb = document.querySelector('.admin-topbar-mobile');
+      if (tb) tb.style.display = window.innerWidth <= 640 ? 'flex' : 'none';
+    });
+  </script>
+</body>
+</html>
