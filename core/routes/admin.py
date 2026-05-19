@@ -249,7 +249,9 @@ def reply_message(msg_id):
     def send_async_reply(app, email_to_send):
         with app.app_context():
             try:
-                mail.send(email_to_send)
+                # ⛔ TEMPORARILY DISABLED due to Render Free Tier SMTP block
+                # mail.send(email_to_send)
+                pass
             except Exception as e:
                 print(f"\n🔥 ADMIN REPLY ERROR: {str(e)}\n")
 

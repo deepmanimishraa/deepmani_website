@@ -13,7 +13,9 @@ def send_async_email(app, msg):
     """Sends the email in a background thread so the UI doesn't freeze."""
     with app.app_context():
         try:
-            mail.send(msg)
+            # ⛔ TEMPORARILY DISABLED due to Render Free Tier SMTP block
+            # mail.send(msg) 
+            pass
         except Exception as e:
             print(f"\n🔥 GMAIL BACKGROUND ERROR: {str(e)}\n")
 
