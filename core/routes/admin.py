@@ -328,3 +328,28 @@ def analytics():
         'journey_cats':   [{'cat': c, 'count': n} for c, n in journey_cats],
     }
     return render_template('admin/analytics.html', stats=stats)
+
+
+
+# ─── DATABASE MEDIC ROUTE (Temporary) ───────────────────────
+@admin_bp.route('/fix-db')
+def fix_db():
+    from sqlalchemy import text
+    try:
+        # Surgically inject missing columns into the live Postgres database
+        queries = [
+            "ALTER TABLE comments ADD COLUMN IF NOT EXISTS author_email VARCHAR(120);",
+            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS reply_sent BOOLEAN DEFAULT FALSE;",
+            "ALTER TABLE messages ADD COLUMN IF NOT EXISTS visitor_id VARCHAR(64);",
+            "ALTER TABLE visitors ADD COLUMN IF NOT EXISTS email VARCHAR(120);",
+            "ALTER TABLE image_posts ADD COLUMN IF NOT EXISTS cloudinary_public_id VARCHAR(300);"
+        ]
+        for q in queries:
+            db.session.execute(text(q))
+            
+        db.session.commit()
+        return "<h2 style='color: #40E0D0; background: #111; padding: 2rem;'>SUCCESS! 🚀<br>Database patched. You can now go to /admin/dashboard</h2>"
+        
+    except Exception as e:
+        db.session.rollback()
+        return f"<h2 style='color: #ff6b6b; background: #111; padding: 2rem;'>Error: {str(e)}</h2>"
