@@ -31,31 +31,36 @@ def logout():
 @admin_bp.route('/dashboard')
 @login_required
 def dashboard():
-    from sqlalchemy import func, cast, Date
-    thirty = datetime.utcnow() - timedelta(days=30)
-    seven  = datetime.utcnow() - timedelta(days=7)
+    try:
+        thirty = datetime.utcnow() - timedelta(days=30)
+        seven  = datetime.utcnow() - timedelta(days=7)
 
-    # 🛠️ Universal Date Extraction (Works on SQLite & PostgreSQL)
-    daily_visitors = (db.session.query(
-            cast(Visitor.first_visit, Date).label('date'),
-            func.count(Visitor.id).label('count'))
-        .filter(Visitor.first_visit >= thirty)
-        .group_by(cast(Visitor.first_visit, Date))
-        .all())
+        # 🛠️ FIX 3: Bulletproof PostgreSQL Date Extraction using explicit db wrappers
+        daily_visitors = (db.session.query(
+                db.cast(Visitor.first_visit, db.Date).label('v_date'),
+                db.func.count(Visitor.id).label('v_count'))
+            .filter(Visitor.first_visit >= thirty)
+            .group_by(db.cast(Visitor.first_visit, db.Date))
+            .all())
 
-    stats = {
-        'visitors':        Visitor.query.count(),
-        'blogs':           BlogPost.query.count(),
-        'images':          ImagePost.query.count(),
-        'messages':        Message.query.filter_by(is_read=False).count(),
-        'comments':        Comment.query.count(),
-        'likes':           Like.query.count(),
-        'new_visitors_7d': Visitor.query.filter(Visitor.first_visit >= seven).count(),
-        'recent_visitors': Visitor.query.order_by(Visitor.last_visit.desc()).limit(8).all(),
-        'recent_messages': Message.query.order_by(Message.created_at.desc()).limit(5).all(),
-        'daily_visitors':  [{'date': str(d.date), 'count': d.count} for d in daily_visitors],
-    }
-    return render_template('admin/dashboard.html', stats=stats)
+        stats = {
+            'visitors':        Visitor.query.count(),
+            'blogs':           BlogPost.query.count(),
+            'images':          ImagePost.query.count(),
+            'messages':        Message.query.filter_by(is_read=False).count(),
+            'comments':        Comment.query.count(),
+            'likes':           Like.query.count(),
+            'new_visitors_7d': Visitor.query.filter(Visitor.first_visit >= seven).count(),
+            'recent_visitors': Visitor.query.order_by(Visitor.last_visit.desc()).limit(8).all(),
+            'recent_messages': Message.query.order_by(Message.created_at.desc()).limit(5).all(),
+            'daily_visitors':  [{'date': str(d.v_date), 'count': d.v_count} for d in daily_visitors],
+        }
+        return render_template('admin/dashboard.html', stats=stats)
+        
+    except Exception as e:
+        # 🛠️ DIAGNOSTIC TRAP: Prints the exact crash error to your screen instead of a white 500 page
+        import traceback
+        return f"<div style='color:#ff6b6b; background:#111; padding:3rem; font-family:monospace; height:100vh; overflow:auto;'><h2>Dashboard Crash Report</h2><pre>{traceback.format_exc()}</pre></div>"
 
 # ─── BLOG ───────────────────────────────────────────────────
 @admin_bp.route('/blogs')

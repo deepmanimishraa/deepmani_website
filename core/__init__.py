@@ -5,27 +5,25 @@ from flask_login import LoginManager
 from flask_mail import Mail
 from flask_wtf.csrf import CSRFProtect
 from dotenv import load_dotenv
+from werkzeug.middleware.proxy_fix import ProxyFix  # 🛠️ ADD THIS IMPORT
 
-# 1. Load environment variables
+# Load environment variables
 load_dotenv()
 
-# 2. Import the database object from your models.py
+# Import the database object
 from .models import db
 
-# 3. Initialize other Plugins globally
+# Initialize Plugins globally
 login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
 
 def create_app():
-    # Tell Flask to look in the core folder for templates and static files
     app = Flask(__name__, template_folder='templates', static_folder='static')
     
-    # Load configuration
     from .config import Config
     app.config.from_object(Config)
 
-    # Bind Plugins to the app
     db.init_app(app)
     login_manager.init_app(app)
     mail.init_app(app)
@@ -40,7 +38,6 @@ def create_app():
         api_secret  = app.config.get('CLOUDINARY_API_SECRET'),
     )
 
-    # Register Blueprints inside the app context
     with app.app_context():
         from .routes.main     import main_bp
         from .routes.admin    import admin_bp
@@ -60,7 +57,6 @@ def create_app():
         app.register_blueprint(visitor_bp,  url_prefix='/api/visitor')
         app.register_blueprint(messages_bp, url_prefix='/api/messages')
 
-        # Exempt JSON API blueprints from CSRF
         csrf.exempt(gallery_bp)
         csrf.exempt(ai_bp)
         csrf.exempt(visitor_bp)
@@ -71,10 +67,14 @@ def create_app():
 
         @login_manager.user_loader
         def load_user(user_id):
-            return Admin.query.get(int(user_id))
+            # 🛠️ FIX 1: Modern SQLAlchemy 2.0 syntax prevents 500 crash on load
+            return db.session.get(Admin, int(user_id))
 
         db.create_all()
         _seed(app, Admin, Journey)
+
+    # 🛠️ FIX 2: Tell Flask it is behind a secure Render load balancer
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     return app
 
@@ -84,7 +84,6 @@ def _seed(app, Admin, Journey):
             username=app.config.get('SEED_ADMIN_USERNAME'), 
             email=app.config.get('SEED_ADMIN_EMAIL')
         )
-        # Avoid crashing if passwords aren't set in .env yet
         seed_pass = app.config.get('SEED_ADMIN_PASSWORD')
         if seed_pass:
             a.set_password(seed_pass)
@@ -92,18 +91,10 @@ def _seed(app, Admin, Journey):
 
     if not Journey.query.first():
         entries = [
-            Journey(year='2022', title='Journey Begins',
-                    description='Embarked on the path of knowledge and innovation. Started exploring Data Science & programming.',
-                    icon='rocket', category='milestone', order_index=1),
-            Journey(year='2023', title='IIT Madras — BS Data Science',
-                    description='Enrolled in the prestigious BS in Data Science & Applications at IIT Madras. Deep-dived into Python, ML, and Statistical Analysis.',
-                    icon='graduation', category='academic', order_index=2),
-            Journey(year='2024', title='Founded PRAMANIIK',
-                    description='Co-founded PRAMANIIK — a cybersecurity startup focused on data integrity and digital authentication. Leading innovation at the frontier of security.',
-                    icon='shield', category='entrepreneurship', order_index=3),
-            Journey(year='2025', title='Scaling & Vision',
-                    description='Growing PRAMANIIK\'s footprint. Building scalable ecosystems to solve real-world problems. Making India the global leader in tech & AI.',
-                    icon='globe', category='milestone', order_index=4),
+            Journey(year='2022', title='Journey Begins', description='Embarked on the path of knowledge and innovation.', icon='rocket', category='milestone', order_index=1),
+            Journey(year='2023', title='IIT Madras — BS Data Science', description='Enrolled in the prestigious BS in Data Science.', icon='graduation', category='academic', order_index=2),
+            Journey(year='2024', title='Founded PRAMANIIK', description='Co-founded PRAMANIIK — a cybersecurity startup.', icon='shield', category='entrepreneurship', order_index=3),
+            Journey(year='2025', title='Scaling & Vision', description='Growing PRAMANIIK.', icon='globe', category='milestone', order_index=4),
         ]
         db.session.add_all(entries)
 
