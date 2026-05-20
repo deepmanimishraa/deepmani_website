@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url><loc>https://deepmanimishra.com/</loc><changefreq>weekly</changefreq></url>
+    <url><loc>https://deepmanimishra.com/blog/</loc><changefreq>daily</changefreq></url>
+    
+    {% for post in posts %}
+    <url>
+        <loc>https://deepmanimishra.com/blog/{{ post.slug }}</loc>
+        <lastmod>{{ post.updated_at.strftime('%Y-%m-%d') }}</lastmod>
+        <changefreq>monthly</changefreq>
+    </url>
+    {% endfor %}
+</urlset>

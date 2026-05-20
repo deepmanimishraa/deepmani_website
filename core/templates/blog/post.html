@@ -2,13 +2,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" /><meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  
   <title>{{ post.title }} — Deepmani Mishraa</title>
-  <meta name="description" content="{{ post.excerpt or post.title }}" />
-  {% if post.cover_image_url %}<meta property="og:image" content="{{ post.cover_image_url }}" />{% endif %}
+  <meta name="description" content="{{ post.excerpt or post.content[:150] }}" />
+  <link rel="canonical" href="{{ request.url }}" />
+  
+  <meta property="og:title" content="{{ post.title }}" />
+  <meta property="og:description" content="{{ post.excerpt or post.content[:150] }}" />
+  <meta property="og:type" content="article" />
+  <meta property="og:url" content="{{ request.url }}" />
+  {% if post.cover_image_url %}
+  <meta property="og:image" content="{{ post.cover_image_url }}" />
+  {% endif %}
+  
   <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
 </head>
 <body>

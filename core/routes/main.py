@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, jsonify
 from core.models import db, BlogPost, ImagePost, Journey, Visitor
 from datetime import datetime
 import uuid
+from core.models import BlogPost # Ensure this is imported
 
 main_bp = Blueprint('main', __name__)
 
@@ -51,3 +52,14 @@ def stats():
         'total_blogs': BlogPost.query.filter_by(is_published=True).count(),
         'total_images': ImagePost.query.count(),
     })
+
+@main_bp.route('/sitemap.xml')
+def sitemap():
+    # Fetch all published blog posts for the sitemap
+    posts = BlogPost.query.filter_by(is_published=True).all()
+    
+    # Generate the XML response
+    response = render_template('sitemap.xml', posts=posts)
+    
+    # Set the correct content type for search engines
+    return response, 200, {'Content-Type': 'application/xml'}
