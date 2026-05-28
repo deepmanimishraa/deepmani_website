@@ -59,7 +59,7 @@ if (!window._revealObserverRunning) {
 /* ── TYPED HERO TEXT ────────────────────────────────── */
 const $typed = document.getElementById('typed-text');
 if ($typed) {
-  const phrases = ['Data Scientist','IIT Madras Scholar','Cybersecurity Founder','ML Engineer','Tech Visionary','Co-Founder @ PRAMANIIK'];
+  const phrases = ['Student | IIT Madras', 'Co-Founder | PRAMANIIK'];
   let pi = 0, ci = 0, del = false;
   function typeLoop() {
     const p = phrases[pi];
@@ -227,7 +227,7 @@ let chatHistory = [];
 $toggle?.addEventListener('click', () => {
   $widget.classList.toggle('open');
   if ($widget.classList.contains('open') && !$messages.children.length)
-    addMsg('ai', "Hi! I'm Deepmani's AI assistant. Ask me about his work, PRAMANIIK, IIT Madras, or anything tech! 🚀");
+    addMsg('ai', "Hi! I'm Deepmani's AI assistant. Ask me about his work, Pramaniik, academics, or anything tech! 🚀");
 });
 $close?.addEventListener('click', () => $widget.classList.remove('open'));
 
