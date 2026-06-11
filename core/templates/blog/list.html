@@ -23,7 +23,7 @@
     <div class="section-label">Blog</div>
     <h1 class="section-title">Thoughts &amp; <span>Insights</span></h1>
     <div class="gold-line"></div>
-    <p class="section-subtitle">Data Science · AI · Cybersecurity · Entrepreneurship · IIT Madras Life</p>
+    <p class="section-subtitle">Data Science · AI · Entrepreneurship · Student</p>
     <div class="blog-grid" style="margin-top:2.4rem;">
       {% for post in posts.items %}
       <a href="{{ url_for('blog.post', slug=post.slug) }}" class="blog-card reveal" style="animation-delay:{{ loop.index0*0.08 }}s">
