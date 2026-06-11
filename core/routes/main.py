@@ -2,7 +2,7 @@ from flask import Blueprint, render_template, request, jsonify
 from core.models import db, BlogPost, ImagePost, Journey, Visitor
 from datetime import datetime
 import uuid
-from core.models import BlogPost # Ensure this is imported
+from core.models import BlogPost 
 
 main_bp = Blueprint('main', __name__)
 

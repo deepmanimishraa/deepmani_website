@@ -18,7 +18,32 @@ login_manager = LoginManager()
 mail = Mail()
 csrf = CSRFProtect()
 
+import pytz
+from datetime import datetime
+
+def to_ist(utc_dt):
+    # 1. Ensure the datetime is timezone-aware (assume UTC if it isn't)
+    if utc_dt.tzinfo is None:
+        utc_dt = utc_dt.replace(tzinfo=pytz.utc)
+    
+    # 2. Define IST timezone
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    
+    # 3. Convert and return
+    return utc_dt.astimezone(ist_tz)
+
+from flask import Flask
+from werkzeug.middleware.proxy_fix import ProxyFix
+
 def create_app():
+    app = Flask(__name__)
+    
+    # Wrap your app with ProxyFix
+    # 'x_for=1' tells Flask to trust the first proxy in the chain 
+    # to provide the real IP via the X-Forwarded-For header.
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+ 
+    app.jinja_env.filters['to_ist'] = to_ist
     app = Flask(__name__, template_folder='templates', static_folder='static')
     
     from .config import Config

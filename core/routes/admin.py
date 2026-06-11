@@ -267,7 +267,6 @@ def reply_message(msg_id):
     return redirect(url_for('admin.messages'))
 
 # ─── ANALYTICS ───────────────────────────────────────────────
-# ─── ANALYTICS ───────────────────────────────────────────────
 @admin_bp.route('/analytics')
 @login_required
 def analytics():

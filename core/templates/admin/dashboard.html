@@ -17,7 +17,7 @@
 <!-- KPI STRIP -->
 <div class="kpi-strip">
   <div class="kpi-card"><span class="kpi-num">{{ stats.visitors }}</span><span class="kpi-label">Total Visitors</span></div>
-  <div class="kpi-card"><span class="kpi-num mint">{{ stats.new_visitors_7d }}</span><span class="kpi-label">New (7d)</span></div>
+  <div class="kpi-card"><span class="kpi-num mint">{{ stats.new_visitors_7d }}</span><span class="kpi-label">New(7D)</span></div>
   <div class="kpi-card"><span class="kpi-num">{{ stats.blogs }}</span><span class="kpi-label">Blog Posts</span></div>
   <div class="kpi-card"><span class="kpi-num">{{ stats.images }}</span><span class="kpi-label">Images</span></div>
   <div class="kpi-card"><span class="kpi-num pink">{{ stats.likes }}</span><span class="kpi-label">Likes</span></div>
@@ -63,7 +63,7 @@
         <tr>
           <td style="font-family:var(--f-mono);font-size:.76rem;">{{ v.ip_address or '—' }}</td>
           <td><span class="badge badge-gold">{{ v.visit_count }}</span></td>
-          <td style="font-size:.76rem;color:var(--text-dim);">{{ v.last_visit.strftime('%b %d, %H:%M') }}</td>
+          <td style="font-size:.76rem;color:var(--text-dim);">{{ v.last_visit.strftime('%b %d, %I:%M %p') }}</td>
         </tr>
         {% else %}
         <tr><td colspan="3" style="text-align:center;color:var(--text-dim);padding:1.5rem;">No visitors yet</td></tr>
