@@ -227,7 +227,7 @@ let chatHistory = [];
 $toggle?.addEventListener('click', () => {
   $widget.classList.toggle('open');
   if ($widget.classList.contains('open') && !$messages.children.length)
-    addMsg('ai', "Hi! I'm Deepmani's AI assistant. Ask me about his work, Pramaniik, academics, or anything tech! 🚀");
+    addMsg('ai', "Hi! I'm Deepmani's AI assistant. Ask me about his work, academics, or anything!");
 });
 $close?.addEventListener('click', () => $widget.classList.remove('open'));
 
